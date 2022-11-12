@@ -1,5 +1,5 @@
 # Human Accelerated Region Enrichment (HARE) Evolutionary Analysis Pipeline
-Author: Olivia Smith, osmith@utexas.edu, GitHub @ossmith
+Author: Olivia Smith, osmith@utexas.edu, GitHub @ossmith  
 Publication Corresponding Author: Vagheesh Narasimhan, vagheesh@austin.utexas.edu, GitHub @vagheesh
 
 This script identifies the genes and genomic features associated with autosomal genome-wide significant SNPs based on GWAS summary statistics for a given phenotype. It then tests for elevated intersections between the genomic features and human accelerated regions (HARs) based on a simulated background distribution. This analysis is based upon a modification of the method presented in [Richard, et al., 2020](https://doi.org/10.1016/j.cell.2020.02.057).
@@ -40,24 +40,22 @@ The following are required dependencies for HARE. Hyperlinks will direct you to 
 - wget (Note that wget is installed by default on Linux but not Mac (Unix) operating systems, so you may need to install it separately, e.g. `brew install wget`.)
 - [R => 4.1](https://www.r-project.org/) (only required for `HARE_Results.R`)
 
-You can also install the dependencies as a conda environment using the provided `environment.yml` file. One in the HARE directory, create and activate the conda environment using:
+You can also install the dependencies as a conda environment using the provided `environment.yml` file. Once in the HARE directory, create and activate the conda environment using:
 ```
 conda env create -f environment.yml
 conda activate HARE
 ```
 
 ### Installation from source
-1. Clone the repository: `git clone https://github.com/ossmith/HARE.git`
-2. You can also test the installation with:  
+Clone this repository:
 ```
-cd HARE
-python HARE.py --gwas reference_assets/exampleGWAS.tsv --HAR reference_assets/harsRichard2020.bed --ref reference_assets/UCSC.GRCh37.autosomes.bed --out testHARE -n 5
+git clone https://github.com/ossmith/HARE.git
 ```
 
 ## Workflow
 ### Inputs
 The script requires, at minimum, a GWAS summary statistics file, a reference genome annotation BED, and a BED file containing the human accelerated regions (HARs). UCSC genome annotations for GRCh37 and GRCh38 as well as the Richard, et al., 2020 HARs BED file can be found in the `reference_assets` directory.
-- `[GWAS]`: GWAS summary statistics file which contains information on the chromosome, position, and p-value for each SNP
+- `[GWAS]`: Tab-separated GWAS summary statistics file which contains information on the chromosome, position, and p-value for each SNP
 - `[HAR].bed`: BED file with human accelerated regions (HARs)
 - `[REF].bed`: BED file with gene annotation of human genome reference (e.g. UCSC's hg19 .bed)
 
@@ -88,11 +86,13 @@ R-script HARE_Results.R --i [INPUT] --o [OUT_STEM]
 where `--input` is the `[INPUT].intersections` file (or comma-separated list of files) created by `HARE.py`.
 
 ### Options
-#### Basic Options
+#### Basic Arguments
 | Option | Data Type | Description |
 | ----------- | --------- | ----------- |
-| `--gwas`, `-g` | string | Filepath for GWAS summary statistics. |
-| `--out`, `-o` | string | Output filepath stem. Default is the filestem of the GWAS summary statistics file. If nothing is provided, will use the stem from the input GWAS file. |
+| `--gwas`, `-g` | string | (Required) Filepath for GWAS summary statistics. |
+| `--ref` | string | (Required) Filepath for BED-format human genome reference annotation. This file is used to simulate matched element sets. UCSC GRCh37 and GRCh38 gene annotation files are available under `reference_assets`. |
+| `--HAR` | string | (Required) Filepath for BED-format human accelerated regions (HARs). The Richard, et al., 2020 HAR supplement files (GRCh37 and a GRCh38 liftover) are available under `reference_assets`. |
+| `--out`, `-o` | string | Output filepath stem. If nothing is provided, will use the stem from the input GWAS file. |
 
 #### GWAS Options
 | Option | Data Type | Description |
