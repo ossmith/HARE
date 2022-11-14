@@ -9,10 +9,10 @@ Below is comprehensive information about each of the files created using the HAR
 The script which runs the analysis pipeline. There are three major parts of the workflow: 1. annotation of the genome-wide significant SNPs and creation of the element set for testing, 2. simulation of matched element sets, and 3. computation of intersections/bp of elements with human accelerated regions (HARs). See the README for details on installation and use of this script.
 
 ## HARE_Results.R
-This script runs the Weibull distribution fitting and hypothesis testing of phenotype-associated element set against that distribution. See the README for details on installation and use of this script.
+This script runs the Weibull distribution fitting and hypothesis testing of phenotype-associated element set against the null distribution. See the README for details on installation and use of this script.
 
 ## environment.yml
-YAML file which contains instructions for creating a conda environment named HARE which installs all the dependencies for running the analysis.
+YAML file which contains instructions for creating a conda environment (named HARE) which installs all the dependencies for running the analysis.
 
 ## HAR BED Files
 `harsRichard2020.GRCh37.bed` and `harsRichard2020.GRCh38.bed`
@@ -30,7 +30,7 @@ BED file which contains the human accelerated regions (HARs) discovered/annotate
 ```
 gunzip UCSC.GRCh37.autosomes.bed.gz
 ```
-Descriptions are taken from the UCSC Genome Browser at time of publication.
+Data dictionary descriptions are taken from the UCSC Genome Browser at time of publication.
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
@@ -68,7 +68,7 @@ A list of SNPs with genome-wide association to the phenotype in VCF file format.
 Output from the Ensembl Variant Effect Predictor command line tool. Comments are preceded by `#`, including column headers. For the file's data dictionary, see the ['default VEP output documentation'](https://uswest.ensembl.org/info/docs/tools/vep/vep_formats.html#defaultout).
 
 ## example.biomart
-Output from the BioMart location finding for the elements annotated by VEP (`[OUT].annotation` file). Headers are included in this file.
+Output from the BioMart location finding for the elements annotated by VEP (`[OUT_STEM].annotation` file). Headers are included in this file.
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
@@ -89,7 +89,7 @@ BED file which contains only the locations of the elements annotated via VEP. Th
 | END  | int | End position of the feature (bp) |
 
 ## example.intersections
-BED file which contains only the locations of the elements annotated via VEP. This file is used as an input to the HAR intersection steps of the pipeline.
+This file contains the calculations of the intersections/bp for the simulation and phenotype-associated element sets.
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
