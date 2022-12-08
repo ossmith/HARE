@@ -46,6 +46,11 @@ conda env create -f environment.yml
 conda activate HARE
 ```
 
+You may then need to update the perl Compress::Raw::Zlib module:
+```
+cpan Compress::Raw::Zlib
+```
+
 ### Installation from source
 Clone this repository:
 ```
