@@ -3,7 +3,7 @@
 # osmith@utexas.edu
 # GitHub: @ossmith
 
-name: HARE
+name: hare-env
 channels:
   - bioconda
   - conda-forge
@@ -12,7 +12,13 @@ dependencies:
   - htslib=1.14
   - ensembl-vep=105.0
   - python=3.*
+  - matplotlib
+  - pandas
   - r-base=4.1*
+  - r-goftest
+  - r-actuar
+  - r-fitdistrplus=1.1_11
+  - r-optparse
   - perl-bioperl=1.7.8
   - perl-dbd-mysql
   - perl-set-intervaltree
