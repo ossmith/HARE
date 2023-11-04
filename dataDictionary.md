@@ -43,7 +43,7 @@ Data dictionary descriptions are taken from the UCSC Genome Browser at time of p
 | BLOCK_START | int | A comma-separated list of block starts. All of the BLOCK_START positions should be calculated relative to CHR_START. The number of items in this list should correspond to BLOCK_COUNT. |
 
 ## exampleGWAS.tsv
-An example GWAS summary statistics file in the 'BOLT-LMM' format as used in this publication (see `--source_bolt` option); see the data dictionary for this filetype in the [BOLT-LMM v2.4 User Manual](https://alkesgroup.broadinstitute.org/BOLT-LMM/BOLT-LMM_manual.html). All summary statistics files must, at minimum, contain a "CHR", "POS", "P", and "MAF" column (alternative p-value and MAF column names can be specified, see `--gwas_p` and `--gwas_maf` options). HARE also accepts the Neale Lab UKB GWAS summary statistics (or files in that format, see the `--source_neale` option). You can see the dictionary for the Neale Lab GWAS analyses in [their manifest](https://docs.google.com/spreadsheets/d/1kvPoupSzsSFBNSztMzl04xMoSC3Kcx3CrjVf4yBmESU/edit#gid=227859291).
+An example GWAS summary statistics file in the 'BOLT-LMM' format as used in this publication (see `--source_bolt` option); see the data dictionary for this filetype in the [BOLT-LMM v2.4 User Manual](https://alkesgroup.broadinstitute.org/BOLT-LMM/BOLT-LMM_manual.html). All summary statistics files must, at minimum, contain columns with chromosome, position, and p-value columns (see options in README or with `hare intersect -h` for details on specifying column headers). HARE also accepts the Neale Lab UKB GWAS summary statistics (or files in that format, see the `--source_neale` option). You can see the dictionary for the Neale Lab GWAS analyses in [their manifest](https://docs.google.com/spreadsheets/d/1kvPoupSzsSFBNSztMzl04xMoSC3Kcx3CrjVf4yBmESU/edit#gid=227859291).
 
 ## example.snps
 A list of SNPs with genome-wide association to the phenotype in VCF file format. See [SAMtools documentation](https://samtools.github.io/hts-specs/VCFv4.2.pdf) for more details on this file format. Data dictionary is available in this this documentation.
@@ -86,13 +86,12 @@ Results file which contains information about the run parameters, model fitting,
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
-| file | string | Category for the calculation which specifies whether the element set is either "simulation" or "test_set" (phenotype-associated). |
-| set_size | int | Number of elements present in the element set. This number applies both to the phenotype-associated and simulation element sets. |
-| n_simulations  | int | Number of simulations used to generate the background distribution. |
-| distribution | string | Distribution type used for fitting data for hypothesis testing. HARE_Results.R uses the Weibull distribution. |
-| KS_stat | float | Kolmogorov-Smirnov (K-S) test statistic quantifying goodness-of-fit of the simulation dataset to the Weibull distribution. |
-| mean_int_per_bp | float | The mean intersections/bp across all the simulations. |
-| set_int_per_bp | float | The intersections/bp in the phenotype-associated element set. |
-| pvalue | float | P-value from Weibull test. |
-| frac_less | float | Fraction of the simulations which had lower intersections/bp than the phenotype-associated element set. Value will be between 0 and 1. |
-| frac_more | float | Fraction of the simulations which had higher intersections/bp than the phenotype-associated element set. Value will be between 0 and 1. |
+| FILENAME | string | Category for the calculation which specifies whether the element set is either "simulation" or "test_set" (phenotype-associated). |
+| SET_SIZE | int | Number of elements present in the element set. This number applies both to the phenotype-associated and simulation element sets. |
+| N_SIMULATIONS  | int | Number of simulations used to generate the background distribution. |
+| DISTRIBUTION | string | Distribution type used for fitting data for hypothesis testing. HARE_Results.R uses the Weibull distribution. |
+| KS_STAT | float | Kolmogorov-Smirnov (K-S) test statistic quantifying goodness-of-fit of the simulation dataset to the Weibull distribution. |
+| SIM_IPB | float | The mean intersections/bp across all the simulations. |
+| SET_IPB | float | The intersections/bp in the phenotype-associated element set. |
+| P_DISTRIBUTION | float | P-value from hypothesis test based on provided distribution (default Weibull). |
+| P_EMPIRICAL | float | Empirical p-value calculated as the fraction of the simulations which had higher intersections/bp than the phenotype-associated element set. |

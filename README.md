@@ -44,7 +44,7 @@ The following are required dependencies for HARE. Hyperlinks will direct you to 
 - [HTSlib](http://www.htslib.org/download/)
 - [BEDtools v2.30.0](https://bedtools.readthedocs.io/en/latest/content/installation.html)
 - wget (Note that wget is installed by default on Linux but not Unix (Mac) operating systems, so you may need to install it separately, e.g. `brew install wget`.)
-- [R => 4.1](https://www.r-project.org/) (required for significance testing)
+- [R => 4.1](https://www.r-project.org/) (required for significance testing) and packages goftest, actuar, and fitdistrplus
 
 ### Install with conda and pypi
 Start by cloning this repo:
@@ -88,7 +88,7 @@ hare intersect --gwas [GWAS] --eoi [EOI] --ref [REF] --out [OUT_STEM] ... [OPTIO
 Various options are explained below.
 
 ### Running significance testing
-The significance testing is done using ` sigtest`. This function is separated from the main analysis because it allows for multiple HARE output files from different GWASs to be analyzed together to create a condensed TSV. The command is:
+The significance testing is done using `sigtest`. This function is separated from the main analysis because it allows for multiple HARE output files from different GWASs to be analyzed together to create a condensed TSV. The command is:
 ```
 hare sigtest --i [INPUT] --o [OUT_STEM] ... [OPTIONS]
 ```
@@ -141,6 +141,7 @@ You and also view this using the `-h` option after installation.
 |`--cache_version` | string | VEP cache version to use. Default is 105 (version used during development).|
 |`--biotypes` | string | Allowed biotypes for annotation. Options are \"protein_coding\", \"protein_all\", and \"all_features\". Default is \"protein_all.\" See [VEP's biotype documentation](https://uswest.ensembl.org/info/genome/genebuild/biotypes.html) for details.|
 | `--draws`, `-n` | int | Number of simulations (draws) to use for background distribution. Default is n=1000. |
+| `--keep_tmp` | - | Keep all temporary files created during the run. |
 
 #### sigtest
 | Option | Data Type | Description |

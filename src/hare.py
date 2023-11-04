@@ -6,21 +6,15 @@
 
 ###############################################################################
 
-# HARE:
+# HARE: A genetic feature enrichment analysis pipeline
+# This script is the runner for the module which takes in the arguments for
+# which function to run and what parameters and settings to use for that function.
 
 # Please cite our article:
 # Kun E, Javan EM, Smith OS, et al., The genetic architecture and evolution of the human skeletal form.
 # Science 381,eadf8009(2023). DOI:10.1126/science.adf8009
 
-# Dependencies: python => 3.0, pandas, scipy
-# See documentation for environment.yml file and links to installation documentation for dependencies
-
-# Inputs: [RESULTS].intersections: Filename for HARE output (can also be comma-separated list) with calculated intersections/bp between HARs for randomly generated controls and provided element set
-
-# Outputs: [output_stem].stats: Tab-separated file with the test parameters and resulting p-value
-#          [output_stem].png: Figure showing the distribution of intersections/bp of the simulations against the intersections/bp of the phenotype-associated element set
-
-# Example command: hare sigtest --input [INPUT] --output [output_stem]
+# Dependencies: See documentation for environment.yml file and dependency list
 
 ###############################################################################
 
