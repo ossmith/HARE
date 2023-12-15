@@ -14,11 +14,12 @@ dependencies:
   - python=3.*
   - matplotlib
   - pandas
-  - r-base=4.1*
-  - r-goftest
-  - r-actuar
-  - r-fitdistrplus=1.1_11
-  - r-optparse
+  - scipy
+  # - r-base=4.1*
+  # - r-goftest
+  # - r-actuar
+  # - r-fitdistrplus=1.1_11
+  # - r-optparse
   - perl-bioperl=1.7.8
   - perl-dbd-mysql
   - perl-set-intervaltree

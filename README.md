@@ -8,29 +8,27 @@ This script identifies the genes and genomic features associated with autosomal 
 ```
 HARE
 |
-│   README.md    
-|   dataDictionary.md
-|   environment.yml
-|   pyproject.toml
-|   setup.cfg
-|   setup.py
-|   hare.reference.assets.tar.gz
+│-- README.md    
+|-- dataDictionary.md
+|-- environment.yml
+|-- pyproject.toml
+|-- MANIFEST.in
+|-- hare.reference.assets.tar.gz
 |
-|───src
-│   │   __init__.py
-│   │   hare.py
-│   │   intersect.py
-│   │   sigtest.py
-│   │   ptest.R
+|---src
+│   │-- __init__.py
+│   │-- hare.py
+│   │-- intersect.py
+│   │-- sigtest.py
+│   │-- hareclasses.py
 │
-└───example_files
-|   |   exampleGWAS.tsv
-|   |   example.snps
-|   |   example.annotation
-|   |   example.biomart
-|   |   example.locations.bed
-|   |   example.intersections
-|   |   exampleResults.tsv
+|---tests
+│   │-- __init__.py
+│   │-- intersect_test.py
+│   │-- sigtest_test.py
+│   │
+│   |---input
+|       |-- ...
 ```
 
 ## Installation

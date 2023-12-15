@@ -35,12 +35,17 @@ def run_sigtest(sigtest_args):
     sigtest.main(**sigtest_args)
     return
 
+# def run_checkinstall():
+#     run unittests
+#     return "Check installation completed."
+
 def main():
     ########################## RUNNER ARGUMENTS ##########################
     parser = argparse.ArgumentParser(description='Provided GWAS summary statistics, investigate whether there is elevated overlap between genome-wide significant genes and genetic elements of interest.')
     subparsers = parser.add_subparsers(help="HARE functions", dest='command')
     intersect = subparsers.add_parser('intersect', help="Annotate regions, simulate background distribution, and compute intersections/bp between annotated regions and provided genetic elements of interest.")
     sigtest = subparsers.add_parser('sigtest', help="Perform significance testing on results output from intersect function.")
+    # check_install = subparsers.add_parser('checkinstall', help="Run unit tests to check installation.")
 
     ########################## INTERSECT ARGUMENTS ##########################
     intersect.add_argument('--gwas', '-g', type=str, help="Complete filepath for GWAS summary statistics.", required=True)
@@ -85,6 +90,9 @@ def main():
     elif command == "sigtest":
         sigargs = vars(sigtest.parse_known_args()[0])
         run_sigtest(sigargs)
+
+    # elif command == "checkinstall"
+    #     run_checkinstall()
 
 if __name__ == "__main__":
     main()

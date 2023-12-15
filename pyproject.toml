@@ -22,9 +22,6 @@ classifiers = [
 [project.scripts]
 hare = "hare:main"
 
-[options.package_data]
-ptest = "ptest.R"
-
 [project.urls]
 "Homepage" = "https://github.com/ossmith/HARE"
 "Bug Tracker" = "https://github.com/ossmith/HARE/issues"

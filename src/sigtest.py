@@ -39,6 +39,7 @@ from shutil import which
 import matplotlib.pyplot as plt
 import sys
 from sys import exit
+from sys import argv
 
 now = datetime.now().strftime("%Y%m%d%H%M%S")
 
@@ -60,26 +61,49 @@ def read_in(inFile):
     print("OK")
     return sims, test, set_size
 
-#### Perform significance testing ####
-def sigtest(inFile, setDist):
-    '''
-    Use the provided intersection data from simulations and the test to determine
-    significance (p-value). Use either the provided distribution or, if 'best' is
-    specified, use a goodness of fit test to find the best fit.
-    '''
+def getStats(inFile):
+    print("Loading intersection set...", end="", flush=True)
 
-    print("Performing fitting and significance testing...", end="", flush=True)
-    # Find ptest in the HARE/src/ directory regardless of where we run script from
-    ptest_dir = os.path.dirname(__file__)
-    ptest_path = os.path.join(ptest_dir, 'ptest.R')
-    cmd = ['Rscript', ptest_path, '-i', inFile, '-d', setDist] # So that we can call the Rscript properly
-    outR = subprocess.check_output(cmd)
-    stats = outR.decode('utf-8').split(' ')
+    inters = pd.read_csv(inFile, skipinitialspace=True, sep="\t", header=0)
+    pd.options.mode.chained_assignment = None # Ignore chained assignments warning
+    inters["int_per_bp"].loc[inters["int_per_bp"]==0] = 1e-80 # Replace 0s for significance testing compatibility
+    test = inters[inters["category"]=="test_set"]
+    test_val = test.iloc[0]["int_per_bp"]
+    sims = inters[inters["category"]=="simulation"]
+    set_size = test.iloc[0,2]
+    n_sim = len(sims["int_per_bp"])
+    mean_ipb = np.mean(sims["int_per_bp"])
+    print(test_val)
+    p = len(sims["int_per_bp"][sims["int_per_bp"]>test_val])/len(sims["int_per_bp"]) # Empirical p value
+
+    stat_out = [inFile, set_size, n_sim, mean_ipb, test_val, p]
+    print(stat_out)
     print("OK")
+    return sims, test, stat_out
+
+#### Perform significance testing ####
+# def sigtest(inFile, setDist):
+#     '''
+#     Use the provided intersection data from simulations and the test to determine
+#     significance (p-value). Use either the provided distribution or, if 'best' is
+#     specified, use a goodness of fit test to find the best fit.
+#     '''
+#
+#     print("Performing fitting and significance testing...", end="", flush=True)
+#     # Find ptest in the HARE/src/ directory regardless of where we run script from
+#     ptest_dir = os.path.dirname(os.path.realpath(argv[0]))
+#     print(ptest_dir)
+#     import pathlib
+#     ptest_dir = os.path.dirname(__file__)
+#     ptest_path = os.path.join(ptest_dir, 'ptest.R')
+#     cmd = ['Rscript', ptest_path, '-i', inFile, '-d', setDist] # So that we can call the Rscript properly
+#     outR = subprocess.check_output(cmd)
+#     stats = outR.decode('utf-8').split(' ')
+#     print("OK")
 
     return stats
 
-def plot(data, vert, p, title, count, output_stem):
+def plot(data, vert, title, count, output_stem):
     '''
     Plot a histogram of the background distribution and phenotype-associated
     element set value. One plot will be created for each phenotype.
@@ -104,7 +128,7 @@ def plot(data, vert, p, title, count, output_stem):
     plt.savefig(png_out)
     plt.clf()
 
-    return
+    return True
 
 ###############################################################################
 #################################### MAIN #####################################
@@ -140,16 +164,19 @@ def main(**kwargs):
     print(f"[args] Using {distribution.upper()} distribution")
     print(f"[args] Results will be written to {output_stem}.*\n")
 
-    outDF = pd.DataFrame(columns=["FILENAME", "SET_SIZE", "N_SIMULATIONS", "DISTRIBUTION", "KS_STAT", "SIM_IPB", "SET_IPB", "P_DISTRIBUTION", "P_EMPIRICAL"])
+    # outDF = pd.DataFrame(columns=["FILENAME", "SET_SIZE", "N_SIMULATIONS", "DISTRIBUTION", "KS_STAT", "SIM_IPB", "SET_IPB", "P_DISTRIBUTION", "P_EMPIRICAL"])
+    outDF = pd.DataFrame(columns=["FILENAME", "SET_SIZE", "N_SIMULATIONS", "SIM_IPB", "SET_IPB", "P_EMPIRICAL"])
     c = 0
     for f in fileList:
-        simDF, testDF, s = read_in(f)
-        outArr = sigtest(f, distribution)
-        row = [f, s] + outArr
+        # simDF, testDF, s = read_in(f)
+        simDF, testDF, row = getStats(f)
+        # sigtestInPy(simDF, testDF, distribution)
+        # outArr = sigtest(f, distribution)
+        # row = [f, s] + outArr
         outDF.loc[len(outDF)] = row
         if skip_plot == False:
             plotName = os.path.splitext(ntpath.basename(f))[0]
-            plot(simDF, testDF, outArr[0], plotName, c, output_stem)
+            plot(simDF, testDF, plotName, c, output_stem)
             c+=1
 
     print("Generating output file...",end="")

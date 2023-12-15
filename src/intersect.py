@@ -50,57 +50,8 @@ from shutil import which
 from pathlib import Path
 import scipy.stats as stats
 import re
+import hareclasses
 NaN = np.nan
-
-# Struct to capture/pass settings for run
-class SettingsContainer:
-    def __init__(self, use_z, anno_only, source_neale, source_bolt, keep_tmp): #, not_human)
-        self.use_z = use_z
-        self.anno_only = anno_only
-        self.source_neale = source_neale
-        self.source_bolt = source_bolt
-        self.keep_tmp = keep_tmp
-        # self.not_human = not_human
-        return
-
-# Struct to concisely pass all the arguments/filenames/etc to the functions
-class ArgumentContainer:
-    def __init__(self, gwas, pval, p_col, maf, maf_col, ref_col, alt_col, snp_map, output, cache_dir, cache_version, biotypes, dist, eoi, ref, build, draws, settings):
-        self.gwas = gwas
-        self.pval = pval
-        self.p_col = p_col
-        self.maf = maf
-        self.maf_col = maf_col
-        self.ref_col = ref_col
-        self.alt_col = alt_col
-        self.snp_map = snp_map
-
-        # Change/assign variables which depend on other settings/options
-        if (settings.source_neale == True) & (settings.source_bolt == True):
-            raise KeyError("Cannot use both --source_neale and --source_bolt. Please select only one or specify custom GWAS column names with --gwas_{HEADER} option. Exiting.")
-        if settings.source_neale == True:
-            self.p_col = "pval"
-            self.maf_col = "minor_AF"
-        if settings.source_bolt == True:
-            self.p_col = "P_BOLT_LMM_INF"
-            self.maf_col = "MAF"
-        if settings.use_z == True:
-            self.p_col = "Z"
-
-        if output == None:
-            self.output = os.path.splitext(ntpath.basename(gwas))[0]
-        else:
-            self.output = output
-
-        self.cache_dir = cache_dir
-        self.cache_v = cache_version
-        self.biotypes = biotypes
-        self.dist = dist
-        self.eoi = eoi
-        self.ref = ref
-        self.build = build
-        self.draws = draws
-        return
 
 ###############################################################################
 ################# GWAS import and preparation for annotation ##################
@@ -134,15 +85,17 @@ def snpToLoc(gwas_df, map):
     # mapped_df.to_csv("TESTINGMAP.tsv",sep="\t",header=True,index=False)
     return mapped_df
 
-def check_header(argumentClass, settingsClass, headerList, chr_col, pos_col):#, gwas, headerList, fileEOI, build, anno_only): # , not_human)
+def check_header(argumentClass, settingsClass, headerList, chr_col, pos_col):#, not_human)
     '''
     Confirm that the GWAS summary statistics and EOI files have an acceptable
     format prior to loading them. The formatting and version matching is
     critical to ensure the various tools run/return correct results.
     '''
+
     dfHead = pd.read_csv(argumentClass.gwas, header=0, sep="\t", index_col=False, nrows=1)
 
     if (settingsClass.source_neale == False) & (settingsClass.source_bolt == False) & (argumentClass.snp_map == None):
+        chr_col, pos_col = "CHR", "POS"
         # Allow CHR or CHROM and BP or POS
         if ("CHR" not in dfHead.columns) & ("CHROM" in dfHead.columns):
             headerList[headerList.index("CHR")] = "CHROM"
@@ -150,14 +103,20 @@ def check_header(argumentClass, settingsClass, headerList, chr_col, pos_col):#, 
         if ("POS" not in dfHead.columns) & ("BP" in dfHead.columns):
             headerList[headerList.index("POS")] = "BP"
             pos_col = "BP"
-    try:
-        all(item in dfHead.columns for item in headerList)
-    except:
+    #
+    # print(dfHead.columns)
+    # print(headerList)
+    #
+    # if all(item in dfHead.columns for item in headerList) == True:
+    #     print("it worked")
+
+    if all(item in dfHead.columns for item in headerList) == False:
         missing = list(set(headerList) - set(dfHead.columns))
-        print("\nKeyError: Necessary columns are not present in GWAS file. Columns specifying chromosome, position, reference allele, and alternate allele are all required.")
-        print(f"{missing} columns are missing.")
-        print("Specify different column headers using --gwas_{HEADER}. Also note that the file must be TAB (\\t) separated. \nExiting.")
-        exit()
+        raise KeyError(f"Necessary columns are not present in GWAS file. Columns specifying chromosome, position, reference allele, and alternate allele are all required. \n{missing} columns are missing \nSpecify different column headers using --gwas_<HEADER>. Also note that the file must be TAB (\\t) separated. \nExiting.")
+        # print("\nKeyError: Necessary columns are not present in GWAS file. Columns specifying chromosome, position, reference allele, and alternate allele are all required.")
+        # print(f"{missing} columns are missing.")
+        # print("Specify different column headers using --gwas_{HEADER}. Also note that the file must be TAB (\\t) separated. \nExiting.")
+        # exit()
 
     if settingsClass.anno_only == False:
         # Check that the chromosome naming is consistent with that of the specified GRCh build.
@@ -192,8 +151,8 @@ def gwas_import(argumentClass, settingsClass):
         raw_df[["CHR","POS","REF","ALT"]] = raw_df["variant"].str.split(":",expand=True)
     elif settingsClass.source_bolt == True:
         boltHeader = ["BP", "SNP", "ALLELE1", "ALLELE0", argumentClass.p_col] #, maf_col]
-        check_header(argumentClass, settingsClass, boltHeader, None, None)
-        raw_df = pd.read_csv(argumentClass.gwas, sep="\t", header=0, usecols=["CHR","BP","SNP","ALLELE1","ALLELE0","P_BOLT_LMM_INF"], index_col=False)
+        check_header(argumentClass, settingsClass, boltHeader, "CHR", "BP")
+        raw_df = pd.read_csv(argumentClass.gwas, sep="\t", header=0, usecols=["CHR","BP","SNP","ALLELE1","ALLELE0",argumentClass.p_col], index_col=False)
         raw_df = raw_df.rename(columns={"BP":"POS", "SNP":"ID", "ALLELE1":"ALT", "ALLELE0":"REF"})
     else:
         defaultHeader = ["CHR", "POS", argumentClass.p_col, argumentClass.alt_col, argumentClass.ref_col]
@@ -226,14 +185,15 @@ def gwas_import(argumentClass, settingsClass):
 
     pd.options.mode.chained_assignment = None # Because this chained assignment is ok, we will suppress this warning
     gwas_df = raw_df[(raw_df["CHR"]!="X") & (raw_df["CHR"]!="Y") & (raw_df["CHR"]!="M") & (raw_df["CHR"]!=23) & (raw_df["CHR"]!="23")] # Autosomes only
-    gwas_df = gwas_df.sort_values(axis=0, by=["CHR","POS"], ascending=True)
     gwas_df['CHR'] = gwas_df['CHR'].astype(int)
+    gwas_df['POS'] = gwas_df['POS'].astype(int)
+    gwas_df = gwas_df.sort_values(axis=0, by=["CHR","POS"], ascending=True)
     gwas_df[argumentClass.p_col] = gwas_df[argumentClass.p_col].replace(to_replace=list([NaN,"-"]),value=1)
     gwas_df[argumentClass.p_col] = gwas_df[argumentClass.p_col].astype(float)
     gwas_df = gwas_df[gwas_df[argumentClass.p_col]<argumentClass.pval] # p-val threshold
 
     if argumentClass.maf_col in gwas_df.columns: # MAF threshold
-        gwas_df = gwas_df[(gwas_df[argumentClass.maf_col]>argumentClass.maf)]
+        gwas_df = gwas_df[gwas_df[argumentClass.maf_col]>argumentClass.maf]
     gwas_df = gwas_df[((gwas_df["REF"].isin(["A","T","C","G"])) & (gwas_df["ALT"].isin(["A","T","C","G"])))] # Biallelic only
     last_col = list(["ID","QUAL","FILTER","INFO","REF","ALT"])
     for c in last_col:
@@ -276,7 +236,9 @@ def check_build(vep_file, argumentClass):
                         return
                     else:
                         print(f"\nWARNING: VEP API version does not match cache version ({argumentClass.cache_v}). VEP recommends using the same cache and API version for best results.")
-    return
+            else:
+                return
+    return "pass"
 
 def vep_annotate(snps_out, argumentClass):
     '''
@@ -299,19 +261,19 @@ def vep_annotate(snps_out, argumentClass):
     # Now run VEP and store output in .annotation file
     ann_names = ["VAR_PROVIDED", "LOCATION", "ALLELE", "GENE", "FEATURE", "FEATURE_TYPE", "CONSEQUENCE", "cDNA_POS", "CDS_POS", "PROT_POS", "AMINO_ACIDS", "CODONS", "EXISTING_VARIATION", "EXTRA"]
     if argumentClass.biotypes == "regulatory":
-        cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '--assembly', ("GRCh"+argumentClass.build), '-i', snps_out, '-o', vep_out, '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite','--regulatory']
+        cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '--assembly', ('GRCh'+argumentClass.build), '-i', snps_out, '-o', vep_out, '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite','--regulatory']
     else:
-        cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '--assembly', ("GRCh"+argumentClass.build), '-i', snps_out, '-o', vep_out, '--nearest', 'gene', '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite']
+        cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '--assembly', ('GRCh'+argumentClass.build), '-i', snps_out, '-o', vep_out, '--nearest', 'gene', '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite']
     run_annotate = subprocess.run(cmd_annotate, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # Confirm that annotation file was generated
+    # Confirm that file was created
     try:
         annotation_df = pd.read_csv(vep_out, sep="\t", skipinitialspace=True, index_col=False, names=ann_names, usecols=["LOCATION","ALLELE","GENE","FEATURE","FEATURE_TYPE","EXTRA"], comment='#')
     except FileNotFoundError:
         cmd_msg = " ".join(cmd_annotate)
         print(f'\nFileNotFoundError: VEP annotation output file not found.\n\
         This often occurs when there are issues with the VEP cache or version compatibility.\n\
-        To troubleshoot, try running the command: {cmd_msg}. \n\
+        To troubleshoot, try running the command: {cmd_msg} \n\
         Exiting.')
         exit()
 
@@ -320,7 +282,7 @@ def vep_annotate(snps_out, argumentClass):
 
     # Confirm that the file is not empty
     if len(annotation_df)<1:
-        raise RuntimeError(f'VEP annotation failed. This often occurs due to issues with the VEP cache, version compatibility, or column headers. \nTo troubleshoot, try running the command: {cmd_msg}. \nExiting.')
+        raise RuntimeError(f'VEP annotation failed. This often occurs due to issues with the VEP cache, version compatibility, or column headers. \nTo troubleshoot, try running the command: {cmd_msg} \nExiting.')
 
     # Remove duplicate genes and limit to only genes in the desired biotype
     annotation_df[["X","BIOTYPE"]] = annotation_df["EXTRA"].str.split("BIOTYPE=", expand=True)
@@ -419,9 +381,10 @@ def biomart_locate(annotation_out, argumentClass):
 
     # Confirm that BioMart location finding succeeded and returned results
     if len(biomart_df) < 1:
-        print(f"\nRuntimeError: BioMart location finding failed.\n\
+        cmd_msg = " ".join(cmd_biomart)
+        raise RuntimeError(f"\nRuntimeError: BioMart location finding failed.\n\
         Please check that \'wget\' is installed in your environment.\n\
-        You can attempt to troubleshoot BioMart using the command {cmd_biomart}.\n\
+        You can attempt to troubleshoot BioMart using the command {cmd_msg}.\n\
         If this error persists, please open an issue on GitHub. \nExiting.")
         exit()
     biomart_df.to_csv(biomart_out, sep="\t", header=True, index=False)
@@ -443,7 +406,7 @@ def biomart_locate(annotation_out, argumentClass):
 ###############################################################################
 ##################### Simulation and enrichment analysis ######################
 ###############################################################################
-def read_in(locations_out):
+def sim_prep(locations_out):
     '''
     Load element set for enrichment analysis and compute statistics on them.
     The data about element set size and lengths will be used to create a
@@ -484,7 +447,7 @@ def read_in(locations_out):
 ###############################################################################
 ###############################################################################
 
-def simulate(bin_len, bin_size, argumentClass):
+def simulate(bin_len, bin_size, argumentClass, use_seed):
     '''
     In order to test for enrichment, use BEDTools to simulate a set of random
     gene regions using the reference genome annotation. These will be used to
@@ -497,15 +460,21 @@ def simulate(bin_len, bin_size, argumentClass):
 
     with open(simulation_outPath, "w") as outfile:
         for i in range(0,len(bin_len)):
-          L = str(bin_len["LENGTH"][i])
-          S = str(bin_size["LENGTH"][i])
-          cmd_rand = ["bedtools","random","-l",L,"-n",S,"-g",argumentClass.ref]
-          run_rand = subprocess.run(cmd_rand, stdout=outfile, stderr=subprocess.PIPE)
+            L = str(bin_len["LENGTH"][i])
+            S = str(bin_size["LENGTH"][i])
+
+            if use_seed == True: # Only for unittest
+                cmd_rand = ["bedtools","random","-l",L,"-n",S,"-g",argumentClass.ref,"-seed","1001"]
+            else:
+                cmd_rand = ["bedtools","random","-l",L,"-n",S,"-g",argumentClass.ref]
+            # print(cmd_rand)
+            run_rand = subprocess.run(cmd_rand, stdout=outfile, stderr=subprocess.PIPE)
     outfile.close()
 
     if os.stat(simulation_outPath).st_size == 0:
-        print(f"RuntimeError: bedtools simulation failed. Please check your reference file.\n\
-        You may also troubleshoot using this command: {cmd_rand}\n\
+        cmd_msg = " ".join(cmd_rand)
+        raise RuntimeError(f"RuntimeError: bedtools simulation failed. Please check your reference file.\n\
+        You may also troubleshoot using this command: {cmd_msg}\n\
         Exiting.")
         exit()
     return simulation_outPath
@@ -541,10 +510,10 @@ def intersect(argumentClass, fileB, eBP):
 ###############################################################################
 def main(**kwargs):
     # Declare settings and parameters coming from options/arguments to hare.py
-    hareSettings = SettingsContainer(kwargs["use_z"], kwargs["anno_only"], kwargs["source_neale"],
+    hareSettings = hareclasses.SettingsContainer(kwargs["use_z"], kwargs["anno_only"], kwargs["source_neale"],
     kwargs["source_bolt"], kwargs["keep_tmp"]) # kwargs["not_human"]
 
-    hareParameters = ArgumentContainer(kwargs["gwas"], kwargs["pval"], kwargs["gwas_p"],
+    hareParameters = hareclasses.ArgumentContainer(kwargs["gwas"], kwargs["pval"], kwargs["gwas_p"],
     kwargs["maf"], kwargs["gwas_maf"], kwargs["gwas_ref"], kwargs["gwas_alt"], kwargs["snp_map"],
     kwargs["out"], kwargs["cache_dir"], kwargs["cache_version"], kwargs["biotypes"], kwargs["dist"],
     kwargs["eoi"], kwargs["ref"], kwargs["ref_build"], kwargs["draws"], hareSettings)
@@ -598,7 +567,7 @@ def main(**kwargs):
     # Intersection testing
     intersections = list()
     cat = list()
-    len_vector, s_vector, total_bp, set_size = read_in(locations_filepath)
+    len_vector, s_vector, total_bp, set_size = sim_prep(locations_filepath)
 
     # Generate and test simulation set
     print("Simulating matched element sets and identifying intersections...", end="", flush=True)
@@ -609,7 +578,7 @@ def main(**kwargs):
         #     simulation_results = sim_matchFile(PARAMS, simulation_outPath)
         # else:
         #     simulation_results = simulate(len_vector, s_vector, ref, simulation_outPath)
-        simulation_results = simulate(len_vector, s_vector, hareParameters)
+        simulation_results = simulate(len_vector, s_vector, hareParameters, False)
         intersections.append(intersect(hareParameters, simulation_results, total_bp))
         cat.append("simulation")
     print("OK")

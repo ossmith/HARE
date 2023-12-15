@@ -5,13 +5,10 @@ GitHub: @ossmith
 
 Below is comprehensive information about each of the files created using the HARE pipeline and data dictionaries for those which require it.
 
-## environment.yml
-YAML file which contains instructions for creating a conda environment (named HARE) which installs all the dependencies for running the analysis.
-
 ## hare.reference.assets.tar.gz
 ### HAR BED Files
 `harsRichard2020.GRCh37.bed` and `harsRichard2020.GRCh38.bed`
-BED file which contains the human accelerated regions (HARs) discovered/annotated in various different publications. This file is sourced from the supplement of [Richard, et al., 2020](https://doi.org/10.1016/j.cell.2020.02.057). The original HAR file was created with using human genome reference GRCh37. The GRCh38 HAR BED file was created using the UCSC Genome Browser liftover tool.
+BED file which contains the human accelerated regions (HARs) discovered/annotated in various different publications. This file is sourced from the supplement of [Richard, et al., 2020](https://doi.org/10.1016/j.cell.2020.02.057). The original HAR file was created with using human genome reference GRCh37. The GRCh38 HAR BED file was created using the UCSC Genome Browser liftover tool. Any file in BED format can be used to build the elements of interest set.
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
@@ -42,16 +39,16 @@ Data dictionary descriptions are taken from the UCSC Genome Browser at time of p
 | BLOCK_SIZE | int | A comma-separated list of the block sizes. The number of items in this list should correspond to BLOCK_COUNT. |
 | BLOCK_START | int | A comma-separated list of block starts. All of the BLOCK_START positions should be calculated relative to CHR_START. The number of items in this list should correspond to BLOCK_COUNT. |
 
-## exampleGWAS.tsv
+## [OUT_STEM].tsv
 An example GWAS summary statistics file in the 'BOLT-LMM' format as used in this publication (see `--source_bolt` option); see the data dictionary for this filetype in the [BOLT-LMM v2.4 User Manual](https://alkesgroup.broadinstitute.org/BOLT-LMM/BOLT-LMM_manual.html). All summary statistics files must, at minimum, contain columns with chromosome, position, and p-value columns (see options in README or with `hare intersect -h` for details on specifying column headers). HARE also accepts the Neale Lab UKB GWAS summary statistics (or files in that format, see the `--source_neale` option). You can see the dictionary for the Neale Lab GWAS analyses in [their manifest](https://docs.google.com/spreadsheets/d/1kvPoupSzsSFBNSztMzl04xMoSC3Kcx3CrjVf4yBmESU/edit#gid=227859291).
 
-## example.snps
+## [OUT_STEM].snps
 A list of SNPs with genome-wide association to the phenotype in VCF file format. See [SAMtools documentation](https://samtools.github.io/hts-specs/VCFv4.2.pdf) for more details on this file format. Data dictionary is available in this this documentation.
 
-## example.annotation
+## [OUT_STEM].annotation
 Output from the Ensembl Variant Effect Predictor command line tool. Comments are preceded by `#`, including column headers. For the file's data dictionary, see the ['default VEP output documentation'](https://uswest.ensembl.org/info/docs/tools/vep/vep_formats.html#defaultout).
 
-## example.biomart
+## [OUT_STEM].biomart
 Output from the BioMart location finding for the elements annotated by VEP (`[OUT_STEM].annotation` file). Headers are included in this file.
 
 | Column Name | Data Type | Description |
@@ -63,8 +60,8 @@ Output from the BioMart location finding for the elements annotated by VEP (`[OU
 | GENE_NAME | string | Gene name associated with the feature in Ensembl |
 | STRAND | integer | Strand which the feature is located on. `1` is for forward and `-1` is for reverse. |
 
-## example.locations.bed
-BED file which contains only the locations of the elements annotated via VEP. This file is used as an input to the HAR intersection steps of the pipeline.
+## [OUT_STEM].locations.bed
+BED file which contains only the locations of the elements annotated via VEP which will be intersected against the genomic elements of interest.
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
@@ -72,7 +69,7 @@ BED file which contains only the locations of the elements annotated via VEP. Th
 | START | int | Starting position of the feature (bp) |
 | END  | int | End position of the feature (bp) |
 
-## example.intersections
+## [OUT_STEM].intersections
 This file contains the calculations of the intersections/bp for the simulation and phenotype-associated element sets.
 
 | Column Name | Data Type | Description |
@@ -81,17 +78,14 @@ This file contains the calculations of the intersections/bp for the simulation a
 | int_per_bp | float | Intersections per base pair computed across the entire element set. |
 | set_size  | int | Number of elements present in the element set. This number should be the same across all simulations associated with a given phenotype-associated element set. |
 
-## exampleResults.tsv
-Results file which contains information about the run parameters, model fitting, and hypothesis testing (including the p-value) of the results from the main HARE script.
+## [OUT_STEM].tsv
+Results file which contains information about the run parameters, model fitting, and hypothesis testing (including the p-value) of the intersect results.
 
 | Column Name | Data Type | Description |
 | ----------- | --------- | ----------- |
 | FILENAME | string | Category for the calculation which specifies whether the element set is either "simulation" or "test_set" (phenotype-associated). |
 | SET_SIZE | int | Number of elements present in the element set. This number applies both to the phenotype-associated and simulation element sets. |
 | N_SIMULATIONS  | int | Number of simulations used to generate the background distribution. |
-| DISTRIBUTION | string | Distribution type used for fitting data for hypothesis testing. HARE_Results.R uses the Weibull distribution. |
-| KS_STAT | float | Kolmogorov-Smirnov (K-S) test statistic quantifying goodness-of-fit of the simulation dataset to the Weibull distribution. |
 | SIM_IPB | float | The mean intersections/bp across all the simulations. |
 | SET_IPB | float | The intersections/bp in the phenotype-associated element set. |
-| P_DISTRIBUTION | float | P-value from hypothesis test based on provided distribution (default Weibull). |
-| P_EMPIRICAL | float | Empirical p-value calculated as the fraction of the simulations which had higher intersections/bp than the phenotype-associated element set. |
+| P | float | Empirical p-value calculated as the fraction of the simulations which had higher intersections/bp than the phenotype-associated element set. |
