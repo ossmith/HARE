@@ -42,7 +42,6 @@ The following are required dependencies for HARE. Hyperlinks will direct you to 
 - [HTSlib](http://www.htslib.org/download/)
 - [BEDtools v2.30.0](https://bedtools.readthedocs.io/en/latest/content/installation.html)
 - wget (Note that wget is installed by default on Linux but not Unix (Mac) operating systems, so you may need to install it separately, e.g. `brew install wget`.)
-- [R => 4.1](https://www.r-project.org/) (required for significance testing) and packages goftest, actuar, and fitdistrplus
 
 ### Install with conda and pypi
 Start by cloning this repo:
@@ -67,14 +66,11 @@ And then build HARE from the included setup files with:
 pip3 install .
 ```
 
-You will then need to download a VEP genome cache if you have not already done so. Find the right cache and install using the instructions [here](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache). Note that the first time you run the tool after downloading the cache, it will need to do some configuration that will slow down the pipeline. This will only take place the first time you use a given cache.
+*You will then need to download a VEP genome cache if you have not already done so.* Find the right cache and install using the instructions [here](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache). Ensembl recommends that you use the same cache version as your VEP install version (hare-env includes v105). Note that the first time you run the tool after downloading the cache, it will need to do some configuration that will slow down the pipeline. This will only take place the first time you use a given cache.
 
-Finally, you can test the install using the provided example files and reference assets. The command is:
+Included reference assets can be extracted with:
 ```
 tar xvf hare.reference.assets.tar.gz
-gunzip reference_assets/UCSC.GRCh37.autosomes.annotation.bed.gz
-hare intersect -g example_files/exampleGWAS.tsv -e reference_assets/harsRichard2020.GRCh37.bed -r reference_assets/UCSC.GRCh37.autosomes.annotation.bed -n 100 -o hare.test
-hare sigtest -i hare.test.intersections
 ```
 
 ## Commands
@@ -112,7 +108,7 @@ Inputs
 - `[INPUT]`: Filepath to results file from HARE with simulation and element set intersection/bp values. Can also be a comma-separated list
 
 Outputs  
-- `[OUT_STEM].stats`: Tab-separated text file with the test parameters and resulting p-value
+- `[OUT_STEM].stats`: Tab-separated text file with the test statistics and resulting p-value
 - `[OUT_STEM].png`: Figure showing the distribution of intersections/bp of the simulations against the intersections/bp of the phenotype-associated element set
 
 ### Arguments and Options
@@ -146,7 +142,6 @@ You and also view this using the `-h` option after installation.
 | ----------- | --------- | ----------- |
 | `--input`, '-i' | string | Filepath for output of hare intersect (by default will have name [FILE].intersections). |
 | `--out`, `-o` | string | Output filepath stem. If nothing is provided, will use "hare". |
-| `--distribution` | str | Provide a distribution to use for hypothesis testing. By default will provide empirical p-values as well as those derived from Weibull distribution. Options are WEIBULL, NORMAL, BETA, and GAMMA (case insensitive). |
 | `--skip_plot` | - | Do not generate plots. Default is OFF (will plot by default). |
 
 ## Reporting Bugs and Issues
