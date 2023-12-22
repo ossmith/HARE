@@ -75,7 +75,7 @@ Finally, you can test the install using the provided example files and reference
 ```
 tar xvf hare.reference.assets.tar.gz
 gunzip reference_assets/UCSC.GRCh37.autosomes.annotation.bed.gz
-hare intersect -g example_files/exampleGWAS.tsv -e reference_assets/harsRichard2020.GRCh37.bed -r reference_assets/UCSC.GRCh37.autosomes.annotation.bed -n 100 -o hare.test
+hare intersect -g example_files/exampleGWAS.tsv -e reference_assets/harsRichard2020.GRCh37.bed -r reference_assets/UCSC.GRCh37.autosomes.annotation.bed -n 100 -o hare.test --source_bolt
 hare sigtest -i hare.test.intersections
 ```
 
