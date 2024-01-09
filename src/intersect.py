@@ -103,7 +103,7 @@ def check_header(argumentClass, settingsClass, headerList, chr_col, pos_col):#, 
         if ("POS" not in dfHead.columns) & ("BP" in dfHead.columns):
             headerList[headerList.index("POS")] = "BP"
             pos_col = "BP"
-    #
+
     # print(dfHead.columns)
     # print(headerList)
     #
@@ -383,7 +383,7 @@ def biomart_locate(annotation_out, argumentClass):
     if len(biomart_df) < 1:
         cmd_msg = " ".join(cmd_biomart)
         raise RuntimeError(f"\nRuntimeError: BioMart location finding failed.\n\
-        Please check that \'wget\' is installed in your environment.\n\
+        Please check that \'wget\' is installed in your environment and that your reference file is unzipped.\n\
         You can attempt to troubleshoot BioMart using the command {cmd_msg}.\n\
         If this error persists, please open an issue on GitHub. \nExiting.")
         exit()
@@ -421,8 +421,8 @@ def sim_prep(locations_out):
     eDiff = list()
     df_elemSet["LENGTH"] = abs(df_elemSet["END"]-df_elemSet["START"])
     df_elemSet["BIN"] = pd.qcut(df_elemSet["LENGTH"],q=10,duplicates="drop")
-    bin_len = df_elemSet.groupby(["BIN"]).mean()["LENGTH"].reset_index()
-    bin_size = df_elemSet.groupby(["BIN"]).count()["LENGTH"].reset_index() # All columns have the same value, which is a count of how many elements are in the bin
+    bin_len = df_elemSet.groupby(["BIN"], observed=False).mean()["LENGTH"].reset_index()
+    bin_size = df_elemSet.groupby(["BIN"], observed=False).count()["LENGTH"].reset_index() # All columns have the same value, which is a count of how many elements are in the bin
     bin_bp = df_elemSet["LENGTH"].sum()
     lens = list()
     sizes = list()
@@ -442,7 +442,26 @@ def sim_prep(locations_out):
 #     create deciles
 #     for d in deciles:
 #         cmd_match = ["bedtools"]
-#     return simulation_outPath
+#     with open(simulation_outPath, "w") as outfile:
+#     for i in range(0,len(bin_len)):
+#         L = str(bin_len["LENGTH"][i])
+#         S = str(bin_size["LENGTH"][i])
+#
+#         if use_seed == True: # Only for unittest
+#             cmd_rand = ["bedtools","random","-l",L,"-n",S,"-g",argumentClass.ref,"-seed","1001"]
+#         else:
+#             cmd_rand = ["bedtools","random","-l",L,"-n",S,"-g",argumentClass.ref]
+#         # print(cmd_rand)
+#         run_rand = subprocess.run(cmd_rand, stdout=outfile, stderr=subprocess.PIPE)
+# outfile.close()
+#
+# if os.stat(simulation_outPath).st_size == 0:
+#     cmd_msg = " ".join(cmd_rand)
+#     raise RuntimeError(f"RuntimeError: bedtools simulation failed. Please check your reference file.\n\
+#     You may also troubleshoot using this command: {cmd_msg}\n\
+#     Exiting.")
+#     exit()
+# return simulation_outPath
 ###############################################################################
 ###############################################################################
 ###############################################################################

@@ -50,3 +50,38 @@ class ArgumentContainer:
         self.build = build
         self.draws = draws
         return
+
+class PrerankArgumentContainer:
+    def __init__(self, input, output, ref_build, buffer, biotypes, topN, pval_col, chr_col, pos_col, pval, dmpN, dmpP, dmpD, chr, excl, incl, score_method, call_peaks):
+        self.input = input
+        self.output = output
+        self.build = ref_build
+        self.buffer = buffer
+        self.biotypes = biotypes
+        self.nTop = topN
+        self.vCol = pval_col
+        self.cCol = chr_col
+        self.pCol = pos_col
+        self.pThresh = pval
+        self.dmpThresh = dmpN
+        self.dmpP = dmpP
+        self.dmpD = dmpD
+
+        if self.dmpD == None:
+            self.dmpD = buffer
+
+        self.chrReg = chr
+        if self.chrReg != None:
+            if self.chrReg not in range(1,23):
+                raise KeyError('--chr must be selected from chromosome 1 to 22. Specifying multiple chromosomes and/or positions is not supported. Exiting.')
+
+        self.xFile = excl
+        self.fFile = incl
+
+        self.scoring = score_method.lower()
+        if self.scoring not in ['min', 'mean']:
+            raise KeyError('--score_method input invalid. Options are \'min\' or \'mean\'. Exiting.')
+
+        self.call_peaks = call_peaks
+
+        return

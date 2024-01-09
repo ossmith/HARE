@@ -1,12 +1,15 @@
 #!/usr/in/env python
 # intersect_test.py
 
+# Example command: python intersect_test.py --cache_dir [VEP_CACHE_PATH] --cache_ver [VEP_VERSION]
+
 import unittest
 import intersect
 import os
 import filecmp
 import hareclasses
 import argparse
+from hare import check_installs
 from sys import exit
 from sys import argv
 import glob
@@ -18,56 +21,51 @@ args = parser.parse_args()
 
 cache_pri = args.cache_dir
 cache_dir = os.path.normpath(os.path.expanduser(cache_pri))
+# Check directory for VEP cache
+if os.path.exists(cache_dir) == False:
+    raise FileNotFoundError(f'{cache_dir} does not exist or could not be opened.')
 cache_ver = args.cache_ver
 working_dir = os.path.dirname(os.path.realpath(argv[0]))
 
-class TestAnnotation(unittest.TestCase):
+class TestIntersect(unittest.TestCase):
 
-    def __init__(self, *arguments):
-        super().__init__()
-
-    def runTest(self):
-        ref = f"{working_dir}/input/ref_pass.bed" # Going to use the same annotation reference file for all
+    def setUp(self):
+        super(TestIntersect, self).setUp()
+        self.ref = f"{working_dir}/input/ref_pass.bed"
+        self.tools = ["vep", "bedtools"]
 
         # Pass
-        passSettings = hareclasses.SettingsContainer(None, None, None, None, None)
-        passParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_pass.txt", 1e-6, "P", 0.1, "MAF", "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", ref, "37", 3, passSettings)
+        self.passSettings = hareclasses.SettingsContainer(None, None, None, None, True)
+        self.passParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_pass.txt", 1e-6, "P", 0.1, "MAF", "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "37", 3, self.passSettings)
 
         # Neale
-        nealeSettings = hareclasses.SettingsContainer(None, None, True, None, None)
-        nealeParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_neale.txt", 1e-6, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", ref, "37", 3, nealeSettings)
+        self.nealeSettings = hareclasses.SettingsContainer(None, None, True, None, None)
+        self.nealeParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_neale.txt", 1e-6, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "37", 3, self.nealeSettings)
 
         # Bolt
-        boltSettings = hareclasses.SettingsContainer(None, None, None, True, None)
-        boltParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_bolt.txt", 1e-6, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", ref, "37", 3, boltSettings)
+        self.boltSettings = hareclasses.SettingsContainer(None, None, None, True, None)
+        self.boltParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_bolt.txt", 1e-6, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "37", 3, self.boltSettings)
 
         # Fail
-        failParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_fail.txt", 1e-100, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_fail.txt", ref, "38", 3, passSettings)
+        self.failParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_fail.txt", 1e-100, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_fail.txt", self.ref, "38", 3, self.passSettings)
 
-        allParameters = [passParameters, nealeParameters, boltParameters]
-        allSettings = [passSettings, nealeSettings, boltSettings]
+        self.settings = [self.passSettings, self.nealeSettings, self.boltSettings]
+        self.params = [self.passParameters, self.nealeParameters, self.boltParameters]
 
-        snpFiles = [f"{working_dir}/input/snp_pass.snps", f"{working_dir}/input/snp_neale.snps", f"{working_dir}/input/snp_bolt.snps"]
+        self.snpFiles = [f"{working_dir}/input/snp_pass.snps", f"{working_dir}/input/snp_neale.snps", f"{working_dir}/input/snp_bolt.snps"]
 
-        for fileset in allParameters: # Make sure the gwas and ref files exist
-            self.find_files(fileset)
+    def tearDown(self):
+        # Clean up directory and clear cache
+        for f in glob.glob(f"{working_dir}/test.*"):
+            os.remove(f)
+        filecmp.clear_cache()
 
-        self.test_header(allSettings, allParameters)
-        self.test_header_fail(passSettings, failParameters)
-        # self.test_snp2loc(testSettings, passParameters)
-        self.test_gwas(allSettings, allParameters, snpFiles)
-        self.test_gwas_fail(failParameters, passSettings)
-        self.test_vep(passParameters)
-        self.test_biomart(passParameters)
-        self.test_simulate(passParameters)
-        self.test_intersect(passParameters)
-        self.clean_dir() # Clean directory after
-        pass
+    def test_find_files(self):
+        intersect.findFiles(self.ref)
 
-    def find_files(self, params):
-        for f in [params.gwas, params.cache_dir, params.eoi, params.ref]:
-            intersect.findFiles(f)
-        return
+    def test_installs(self):
+        for t in self.tools:
+            check_installs(t)
 
     # def test_snp2loc(self, testSettings, passParameters):
     #     CHECK SNP MAP
@@ -78,7 +76,7 @@ class TestAnnotation(unittest.TestCase):
     #
     #     return
 
-    def test_header(self, settingsSet, paramSet):
+    def test_header(self):
         defaultHeader = ["CHR", "POS", "P"]
         nealeHeader = ["variant", "pval"]
         boltHeader = ["BP", "SNP", "ALLELE1", "ALLELE0", "P_BOLT_LMM"]
@@ -86,77 +84,63 @@ class TestAnnotation(unittest.TestCase):
         colList = [["CHR","POS"], ["CHR","POS"], ["CHR","BP"]]
 
         for h in range(len(headersList)):
-            chrResult, posResult = intersect.check_header(paramSet[h], settingsSet[h], headersList[h], colList[h][0], colList[h][1])
+            chrResult, posResult = intersect.check_header(self.params[h], self.settings[h], headersList[h], colList[h][0], colList[h][1])
             self.assertEqual(chrResult, colList[h][0])
             self.assertEqual(posResult, colList[h][1])
-        return
 
-    def test_header_fail(self, testSettings, failParameters):
-
+    def test_header_fail(self):
         with self.assertRaises(KeyError):
-            intersect.check_header(failParameters, testSettings, ["CHR", "POS", "FOO"], "CHR", "POS")
+            intersect.check_header(self.failParameters, self.passSettings, ["CHR", "POS", "FOO"], "CHR", "POS")
 
-        return
+    def test_gwas(self):
+        for g in range(len(self.snpFiles)):
+            snpLoc = intersect.gwas_import(self.params[g], self.settings[g])
+            self.assertTrue(filecmp.cmp(snpLoc, self.snpFiles[g], shallow=False))
 
-    def test_gwas(self, settingsClass, paramSet, snpSet):
-
-        for g in range(len(snpSet)):
-            snpLoc = intersect.gwas_import(paramSet[g], settingsClass[g])
-            self.assertTrue(filecmp.cmp(snpLoc, snpSet[g], shallow=False))
-
-        return
-
-    def test_gwas_fail(self, argumentClass, settingsClass):
-
+    def test_gwas_fail(self):
         with self.assertRaises(RuntimeError):
-            intersect.gwas_import(argumentClass, settingsClass)
+            intersect.gwas_import(self.failParameters, self.passSettings)
 
-        return
-
-    def test_vep(self, argumentClass):
+    def test_vep(self):
         snps_out = f"{working_dir}/input/snp_pass.snps"
-        vep_out = f"{argumentClass.output}.features"
+        # vep_out = f"{argumentClass.output}.features"
+        vep_out = f"{self.passParameters.output}.features"
         vep_success = f"{working_dir}/input/vep_pass.features"
 
-        intersect.vep_annotate(snps_out, argumentClass)
+        intersect.vep_annotate(snps_out, self.passParameters)
         self.assertTrue(filecmp.cmp(vep_out, vep_success, shallow=False))
 
-        return
-
-    def test_biomart(self, argumentClass):
+    def test_biomart(self):
         vep_out = f"{working_dir}/input/vep_pass.features"
-        biomart_out = f"{argumentClass.output}.locations.bed"
+        biomart_out = f"{self.passParameters.output}.locations.bed"
         biomart_pass = f"{working_dir}/input/biomart_pass.locations.bed"
 
-        intersect.biomart_locate(vep_out, argumentClass)
+        intersect.biomart_locate(vep_out, self.passParameters)
         self.assertTrue(filecmp.cmp(biomart_out, biomart_pass, shallow=False))
 
-        return
-
-    def test_simulate(self, argumentClass):
+    def test_simulate(self):
         biomart_pass = f"{working_dir}/input/biomart_pass.locations.bed"
-        sim_out = f"{argumentClass.output}.simulation.tmp"
+        sim_out = f"{self.passParameters.output}.simulation.tmp"
         sim_pass = f"{working_dir}/input/sim_pass.txt"
 
         binL, binS, bp_ignore, s_ignore = intersect.sim_prep(biomart_pass)
-        intersect.simulate(binL, binS, argumentClass, True)
+        intersect.simulate(binL, binS, self.passParameters, True)
         self.assertTrue(filecmp.cmp(sim_out, sim_pass, shallow=False))
 
-        return
+    def test_simulate_fail(self):
+        biomart_pass = f"{working_dir}/input/biomart_pass.locations.bed"
+        sim_out = f"{self.passParameters.output}.simulation.tmp"
+        sim_pass = f"{working_dir}/input/sim_pass.txt"
 
-    def test_intersect(self, argumentClass):
+        binL, binS, bp_ignore, s_ignore = intersect.sim_prep(biomart_pass)
+        intersect.simulate(binL, binS, self.passParameters, False)
+        self.assertFalse(filecmp.cmp(sim_out, sim_pass, shallow=False))
+
+    def test_intersect(self):
         biomart_pass = f"{working_dir}/input/biomart_pass.locations.bed"
         l_ignore, s_ignore, bp_total, s_ignore = intersect.sim_prep(biomart_pass)
-        int_result = intersect.intersect(argumentClass, biomart_pass, bp_total)
+        int_result = intersect.intersect(self.passParameters, biomart_pass, bp_total)
         self.assertEqual(int_result,(4/2167484))
-        # pass
-        return
-
-    def clean_dir(self):
-        for f in glob.glob(f"{working_dir}/test.*"):
-            os.remove(f)
-        filecmp.clear_cache() # Remove filecmp cache
-        return
 
 if __name__ == "__main__":
     unittest.main(argv=['first-arg-is-ignored'])#, exit=False)
