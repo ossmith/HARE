@@ -1,2 +1,0 @@
-file	set_size	n_simulations	distribution	KS_stat	mean_int_per_bp	set_int_per_bp	pvalue	frac_less	frac_more
-example_files/example.intersections	12	1000	weibull	0.551494769098821	1.03393421308177e-06	2.07557771481859e-06	0.315534798139974	0.872	0.071

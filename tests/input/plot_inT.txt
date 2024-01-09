@@ -1,0 +1,2 @@
+category	int_per_bp	set_size
+test_set	1.4043103310011189e-06	500
