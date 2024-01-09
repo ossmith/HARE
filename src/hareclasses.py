@@ -55,6 +55,12 @@ class PrerankArgumentContainer:
     def __init__(self, input, output, ref_build, buffer, biotypes, topN, pval_col, chr_col, pos_col, pval, dmpN, dmpP, dmpD, chr, excl, incl, score_method, call_peaks):
         self.input = input
         self.output = output
+
+        if output == None:
+            self.output = os.path.splitext(ntpath.basename(input))[0]
+        else:
+            self.output = output
+
         self.build = ref_build
         self.buffer = buffer
         self.biotypes = biotypes

@@ -82,13 +82,13 @@ def main():
 
     ########################## SIGTEST ARGUMENTS ##########################
     sigtest.add_argument('--input','-i', type=str, help="Filepath to results file from HARE with simulation and element set intersection/bp values. Can also be a comma-separated list.", required=True)
-    sigtest.add_argument('--out', '-o', type=str, help="Output filepath. Default is \'hare\' if none provided.", required=False, default=None)
+    sigtest.add_argument('--out', '-o', type=str, help="Output filepath. Defaults to input stem if none provided.", required=False, default=None)
     # sigtest.add_argument('--distribution', type=str, help="Distribution to use for significance testing. Options are (case insensitive) NORMAL, WEIBULL, BETA, GAMMA. Default is WEIBULL.", required=False, default="weibull")
     sigtest.add_argument('--skip_plot', action="store_true", help="Skip plotting of results. Default is OFF (will plot by default).")
 
     ########################## PRERANK ARGUMENTS ##########################
     prerank.add_argument('--input', '-i', type=str, help='Filepath of file with p-values.', required=True)
-    prerank.add_argument('--output', '-o', type=str, help='Output stem for filenames. Default \"HARE\" if none provided.', required=False, default='HARE')
+    prerank.add_argument('--output', '-o', type=str, help='Output stem for filenames. Defaults to input stem if none provided.', required=False, default=None)
     prerank.add_argument('--ref_build', '-b', type=str, help="GRCh reference build. Options are either 37 (hg19) or 38 (hg38). Default is 37.", required=False, default="37")
     prerank.add_argument('--topN', '-n', type=int, help='Number of lowest p-value positions to use. No default.', required=False, default=None)
     prerank.add_argument('--pval', '-p', type=float, help='P-value threshold for annotated genes. Default is 1.', required=False, default=1)
