@@ -51,7 +51,7 @@ git clone https://github.com/ossmith/HARE.git
 cd HARE
 ```
 
-You can install the dependencies as a conda environment using the provided `environment.yml` file. By default it will create an environment named 'hare-env'. *Note: For MacOS, you will need to perform additional steps to install VEP, which you can find [here](https://useast.ensembl.org/info/docs/tools/vep/script/vep_download.html#macos).* From the HARE directory:
+You can install the dependencies as a conda environment using the provided `environment.yml` file. By default it will create an environment named 'hare-env'. **Note: For MacOS, you may need to perform additional steps to install VEP, which you can find [here](https://useast.ensembl.org/info/docs/tools/vep/script/vep_download.html#macos).** From the HARE directory:
 ```
 conda env create -f environment.yml
 conda activate hare-env
@@ -67,7 +67,8 @@ And then build HARE from the included setup files with:
 pip3 install .
 ```
 
-*You will then need to download a VEP genome cache if you have not already done so.* Find the right cache and install using the instructions [here](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache). Example (H. sapiens GRCh37 VEP cache v105):
+**You will then need to download a VEP genome cache if you have not already done so.** Find the right cache and install using the instructions [here](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache).  
+Example (H. sapiens GRCh37 VEP cache v105):
 
 ```
 cd $HOME/.vep
@@ -85,8 +86,10 @@ tar xvf hare.reference.assets.tar.gz
 ### Testing Installation
 You can run the unit tests to confirm functionality (requires path to installed cache and version, defaults are '$HOME/.vep/' and '105') using:
 ```
+cd tests/
 python intersect_test.py --cache_dir {VEP_CACHE_PATH} --cache_ver {VEP_VERSION}
 python sigtest_test.py
+python prerank_test.py
 ```
 
 ## Commands
