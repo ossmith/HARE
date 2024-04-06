@@ -9,24 +9,25 @@ dependencies:
   - clang-14=14.0.6
   - clangxx=14.0.6
   # - clangxx_osx-64=14.0.6 # Sometimes required for MacOS
-  # - clang_osx-64=14.0.6 # Sometimes required for MacOS
-  - ensembl-vep=105.0
-  - htslib=1.9
-  - perl=5.26.2
-  - perl-bioperl=1.7.2
-  - perl-db-file=1.852
-  - perl-dbd-mysql=4.046
-  - perl-dbd-sqlite=1.64
-  - perl-dbi=1.642
-  - perl-io-compress=2.087
-  - perl-set-intervaltree=0.12
+  # - clang_osx-64=14.0.6 # Sometvim eimes required for MacOS
+  - ensembl-vep=105
+  - htslib=1.17
+  - perl=5.32
+  - perl-bioperl=1.7.8
+  # - perl-db-file=1.852
+  # - perl-dbd-mysql=4.046
+  # - perl-dbd-sqlite=1.64
+  # - perl-dbi=1.642
+  # - perl-io-compress=2.087
+  # - perl-set-intervaltree=0.12
   - pip
-  - python>3
+  - python>3.8
   - setuptools=52.0.0
   - pip:
       - argparse
       - matplotlib
       - numpy
       - pandas
-      - scipy
+      - scipy>1.8
+      # - scipy==1.7.3
       # - opencv-python==4.4.*

@@ -54,7 +54,8 @@ def read_in(inFile):
 
     inters = pd.read_csv(inFile, skipinitialspace=True, sep="\t", header=0)
     pd.options.mode.chained_assignment = None # Ignore chained assignments warning
-    inters["int_per_bp"].loc[inters["int_per_bp"]==0] = 1e-80 # Replace 0s for significance testing compatibility
+    # inters["int_per_bp"].loc[inters["int_per_bp"]==0] = 1e-80 # Replace 0s for significance testing compatibility
+    inters.replace(0, 1e-80, inplace=True)
     test = inters[inters["category"]=="test_set"]
     sims = inters[inters["category"]=="simulation"]
     set_size = test.iloc[0,2]
@@ -70,7 +71,8 @@ def getStats(inFile):
 
     inters = pd.read_csv(inFile, skipinitialspace=True, sep="\t", header=0)
     pd.options.mode.chained_assignment = None # Ignore chained assignments warning
-    inters["int_per_bp"].loc[inters["int_per_bp"]==0] = 1e-80 # Replace 0s for significance testing compatibility
+    # inters["int_per_bp"].loc[inters["int_per_bp"]==0] = 1e-80 # Replace 0s for significance testing compatibility
+    inters.replace(0, 1e-80, inplace=True)
     test = inters[inters["category"]=="test_set"]
     test_val = test.iloc[0]["int_per_bp"]
     sims = inters[inters["category"]=="simulation"]
@@ -92,10 +94,15 @@ def weibullTest(sims, test, seed):
     '''
 
     print("Performing fitting and significance testing...", end="", flush=True)
+    # print(sims)
     w_sims = sims["int_per_bp"].replace(0, 1e-70)
+    # print(w_sims)
     c, loc, x = weibull_min.fit(w_sims, floc=0) # Set floc=0 because data values are positive starting from 0
+    # print(c, loc, x)
     w_dist = weibull_min(c, scale=x) # Create distribution
+    # print(w_dist)
     w_rvs = w_dist.rvs(len(w_sims), random_state=seed) # Generate RVS
+    # print(w_rvs)
 
     ### For testing fit visually while debugging ###
     # fig, ax = plt.subplots(1,1)
@@ -110,6 +117,7 @@ def weibullTest(sims, test, seed):
     #################################################
 
     weibull_p = 1 - w_dist.cdf(test["int_per_bp"])
+    # print(weibull_p[0])
     print("OK")
 
     return [c, x, weibull_p[0]]

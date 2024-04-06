@@ -80,7 +80,7 @@ def snpToLoc(gwas_df, map):
         lostSNPs = len(gwas_df) - len(mapped_df)
         print(f"\nWARNING: Not all SNP IDs successfully mapped to genomic coordinates. {lostSNPs} were not mapped and will be removed.")
     # Remove 'chr' prefix for GRCh37 build
-    if build == "37":
+    if argumentClass.build == "37":
         mapped_df["CHR"] = mapped_df["CHR"].apply(lambda s: s.replace("chr", ""))
     # mapped_df.to_csv("TESTINGMAP.tsv",sep="\t",header=True,index=False)
     return mapped_df
@@ -121,7 +121,7 @@ def check_header(argumentClass, settingsClass, headerList, chr_col, pos_col):#, 
     if settingsClass.anno_only == False:
         # Check that the chromosome naming is consistent with that of the specified GRCh build.
         # Only read a small number of lines because we want to check the file formatting, not read it into memory
-        eoidf = pd.read_csv(argumentClass.eoi, delim_whitespace=True, nrows=50)
+        eoidf = pd.read_csv(argumentClass.eoi, sep='\s+', nrows=50)
         try: # Using try/except because will fail if that column isn't a string, we can allow that and set eoi_check to 0
             eoi_check = eoidf.iloc[:,0].str.contains('chr').sum()
         except:
@@ -183,16 +183,25 @@ def gwas_import(argumentClass, settingsClass):
     print("Filtering SNPs for analysis...",end="", flush=True)
     raw_df.columns = raw_df.columns.str.replace('[#,@,&]', '',regex=True)
 
-    pd.options.mode.chained_assignment = None # Because this chained assignment is ok, we will suppress this warning
-    gwas_df = raw_df[(raw_df["CHR"]!="X") & (raw_df["CHR"]!="Y") & (raw_df["CHR"]!="M") & (raw_df["CHR"]!=23) & (raw_df["CHR"]!="23")] # Autosomes only
-    gwas_df['CHR'] = gwas_df['CHR'].astype(int)
-    gwas_df['POS'] = gwas_df['POS'].astype(int)
-    gwas_df = gwas_df.sort_values(axis=0, by=["CHR","POS"], ascending=True)
+    if settingsClass.species == "homo_sapiens":
+        pd.options.mode.chained_assignment = None # Because this chained assignment is ok, we will suppress this warning
+        gwas_df = raw_df[(raw_df["CHR"]!="X") & (raw_df["CHR"]!="Y") & (raw_df["CHR"]!="M") & (raw_df["CHR"]!=23) & (raw_df["CHR"]!="23")] # Autosomes only
+        gwas_df['CHR'] = gwas_df['CHR'].astype(int)
+        gwas_df['POS'] = gwas_df['POS'].astype(int)
+        gwas_df = gwas_df.sort_values(axis=0, by=["CHR","POS"], ascending=True)
+    else:
+        gwas_df = raw_df
+
     gwas_df[argumentClass.p_col] = gwas_df[argumentClass.p_col].replace(to_replace=list([NaN,"-"]),value=1)
     gwas_df[argumentClass.p_col] = gwas_df[argumentClass.p_col].astype(float)
+    # print(gwas_df)
     gwas_df = gwas_df[gwas_df[argumentClass.p_col]<argumentClass.pval] # p-val threshold
+    # print(gwas_df)
+    # exit()
 
     if argumentClass.maf_col in gwas_df.columns: # MAF threshold
+        pd.options.mode.chained_assignment = None
+        gwas_df[argumentClass.maf_col] = gwas_df[argumentClass.maf_col].astype(float)
         gwas_df = gwas_df[gwas_df[argumentClass.maf_col]>argumentClass.maf]
     gwas_df = gwas_df[((gwas_df["REF"].isin(["A","T","C","G"])) & (gwas_df["ALT"].isin(["A","T","C","G"])))] # Biallelic only
     last_col = list(["ID","QUAL","FILTER","INFO","REF","ALT"])
@@ -204,9 +213,12 @@ def gwas_import(argumentClass, settingsClass):
 
     if len(gwas_df)<1:
         raise RuntimeError(f"No genome-wide significant SNPs found. SNPs must be autosomal, biallelic, and have a p-value greater than the threshold (p>{argumentClass.pval}) to be passed on for annotation. You may change this p-value threshold using the --pval option. \nExiting.")
-    # if len(gwas_df)<1: # Check that we have identified genome-wide significant SNPs which meet the QC conditions
-    #     print(f"No genome-wide significant SNPs found. SNPs must be autosomal, biallelic, and have a p-value greater than the threshold (p>{pval}) to be passed on for annotation. You may change this p-value threshold using the --pval option. \nExiting.")
-    #     exit()
+
+    try:
+        gwas_df["CHR"] = gwas_df["CHR"].astype(int)
+        gwas_df["POS"] = gwas_df["POS"].astype(int)
+    except:
+        pass
 
     snps_out = f"{argumentClass.output}.snps"
     gwas_df[["CHR","POS","ID","REF","ALT","QUAL","FILTER","INFO"]].to_csv(snps_out, sep="\t", index=False, header=False)
@@ -240,7 +252,7 @@ def check_build(vep_file, argumentClass):
                 return
     return "pass"
 
-def vep_annotate(snps_out, argumentClass):
+def vep_annotate(snps_out, argumentClass, settingsClass):
     '''
     Use Ensembl Variant Effect Predictor (VEP) to identify features which are
     within a specified distance of the genome-wide significant SNPs. Allowed
@@ -264,6 +276,11 @@ def vep_annotate(snps_out, argumentClass):
         cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '--assembly', ('GRCh'+argumentClass.build), '-i', snps_out, '-o', vep_out, '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite','--regulatory']
     else:
         cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '--assembly', ('GRCh'+argumentClass.build), '-i', snps_out, '-o', vep_out, '--nearest', 'gene', '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite']
+    if settingsClass.species != "homo_sapiens":
+        cmd_annotate = ['vep', '--offline', '--cache', '--dir_cache', argumentClass.cache_dir, '-i', snps_out, '-o', vep_out, '--nearest', 'gene', '--cache_version', argumentClass.cache_v, '--distance', str(argumentClass.dist), '--biotype','--force_overwrite', '--species', settingsClass.species]
+
+    # print(cmd_annotate)
+    # exit()
     run_annotate = subprocess.run(cmd_annotate, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Confirm that file was created
@@ -278,10 +295,13 @@ def vep_annotate(snps_out, argumentClass):
         exit()
 
     # Confirm that file used the right genome reference assembly version
-    check_build(vep_out, argumentClass)
+    if settingsClass.species == "homo_sapiens":
+        check_build(vep_out, argumentClass) # Ignore this step if not using human genome
+    # check_build(vep_out, argumentClass)
 
     # Confirm that the file is not empty
     if len(annotation_df)<1:
+        cmd_msg = " ".join(cmd_annotate)
         raise RuntimeError(f'VEP annotation failed. This often occurs due to issues with the VEP cache, version compatibility, or column headers. \nTo troubleshoot, try running the command: {cmd_msg} \nExiting.')
 
     # Remove duplicate genes and limit to only genes in the desired biotype
@@ -301,6 +321,10 @@ def vep_annotate(snps_out, argumentClass):
     elif argumentClass.biotypes == "regulatory": # Use only regulatory features
         annotation_df = annotation_df[annotation_df["FEATURE_TYPE"]=="RegulatoryFeature"]
         dup_drop = "FEATURE"
+
+    # Any genes which do not have a 'nearest' value should take on the gene name for that annotation
+    if "NEAREST" in annotation_df.columns:
+        annotation_df.loc[annotation_df["NEAREST"]=="","NEAREST"] = annotation_df["GENE"]
     annotation_df = annotation_df.drop_duplicates(subset=dup_drop).drop(columns=["X","EXTRA"])
 
     # Check that there are annotations left over after pruning biotypes
@@ -312,10 +336,83 @@ def vep_annotate(snps_out, argumentClass):
     print("OK")
     return annotation_out
 
+def build_biomart_cmd(argumentClass, settingsClass, ensembl_ids):
+    biomart_out = f"{argumentClass.output}.biomart"
+    biomart_tmp = f"{biomart_out}.tmp"
+    speciesName = settingsClass.species.split("_")
+    genus, sp = speciesName[0], speciesName[1]
+
+    # Check if BioMart output file already exists and remove with warning if so
+    if os.path.exists(biomart_out) == True:
+        print(f'\nWARNING: {biomart_out} already exists and will be removed/overwritten.')
+        os.remove(biomart_out)
+        if os.path.exists(biomart_tmp) == True:
+            os.remove(biomart_tmp)
+
+    if (settingsClass.species == "homo_sapiens") | (settingsClass.species == "drosophila_melanogaster"):
+        use_mart = "default"
+        if (argumentClass.build == "38") | (settingsClass.species == "drosophila_melanogaster"):
+            ensembl_prefix = "ensembl.org"
+        elif argumentClass.build == "37":
+            ensembl_prefix = "grch37.ensembl.org"
+    else:
+        if settingsClass.vertebrate == True:
+            ensembl_prefix = "ensembl.org"
+            use_mart = "default"
+        elif settingsClass.plant == True:
+            ensembl_prefix = "plants.ensembl.org"
+            use_mart = "plants_mart"
+        elif settingsClass.metazoa == True:
+            ensembl_prefix = "metazoa.ensembl.org"
+            use_mart = "metazoa_mart"
+        elif settingsClass.fungi == True:
+            ensembl_prefix = "fungi.ensembl.org"
+            use_mart = "fungi_mart"
+        # elif settingsClass.bacteria == True:
+        #     ensembl_prefix = "bacteria.ensembl.org"
+        #     use_mart = "bacteria_mart"
+    # elif settingsClass.protist == True:
+    #     ensembl_prefix = "protists.ensembl.org"
+    #     use_mart = "protists_mart"
+        else:
+            raise ValueError("Appropriate Ensembl site cannot be determined.") # or species flag (--vertebrate, --plant, --metazoa, --bacteria).")
+
+    if argumentClass.biotypes == "regulatory":
+        # print("regulatory")
+        datasetName = f"{genus[0]}{sp}_regulatory_feature"
+        cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"regulatory_stable_id\" value = \"{ensembl_ids}\"/><Attribute name = \"chromosome_name\" /><Attribute name = \"chromosome_start\" /><Attribute name = \"chromosome_end\" /><Attribute name = \"feature_type_name\" /><Attribute name = \"regulatory_stable_id\" /></Dataset></Query>\'"
+
+    elif (settingsClass.species == "homo_sapiens") | (settingsClass.vertebrate == True):
+        # print("vertebrate")
+        datasetName = f"{genus[0]}{sp}_gene_ensembl"
+        if settingsClass.species == "homo_sapiens":
+            # print("human")
+            cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /><Attribute name = \"hgnc_symbol\" /></Dataset></Query>\'"
+        else:
+            # print("not human")
+            cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /></Dataset></Query>\'"
+
+    elif settingsClass.vertebrate == False:
+        # print("not vertebrate")
+        if settingsClass.species == "drosophila_melanogaster":
+            # print("fly")
+            datasetName = f"{genus[0]}{sp}_gene_ensembl"
+            cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /></Dataset></Query>\'"
+        else:
+            # print("not fly")
+            datasetName = f"{genus[0]}{sp}_eg_gene"
+            cmd_biomart = f"wget -O {biomart_tmp} \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"{use_mart}\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids}\"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /></Dataset></Query>\'"
+
+    else:
+        raise RuntimeError("Failed to perform BioMart annotation. If this error persists, please file an issue in GitHub.")
+
+    # print(cmd_biomart)
+    return cmd_biomart
+
 ###############################################################################
 ################### Gene and location finding with BioMart ####################
 ###############################################################################
-def biomart_locate(annotation_out, argumentClass):
+def biomart_locate(annotation_out, argumentClass, settingsClass):
     '''
     Using BioMart wget queries, retrieve the genomic location (CHR, START, END)
     for each element in the annotation list. These will allow us to look for
@@ -328,7 +425,9 @@ def biomart_locate(annotation_out, argumentClass):
         biomart_header = ["CHR","START","END","FEATURE_TYPE","FEATURE_ID"]
     else:
         feature_col = "NEAREST"
-        biomart_header = ["ENSEMBL_ID","START","END","CHR","GENE_NAME","STRAND","HGNC_SYMBOL"]
+        biomart_header = ["ENSEMBL_ID","START","END","CHR","GENE_NAME","STRAND"]
+        if settingsClass.species == "homo_sapiens":
+            biomart_header.append("HGNC_SYMBOL")
 
     # Grab the location (CHR, POS) of the genes identified through vep_annotate()
     annotation_ids = pd.read_csv(annotation_out, sep="\t", header=0, usecols=[feature_col])
@@ -337,27 +436,22 @@ def biomart_locate(annotation_out, argumentClass):
     biomart_tmp = f"{biomart_out}.tmp"
     ids_count = len(annotation_ids[feature_col])
 
-    # Check if BioMart output file already exists and remove with warning if so
-    if os.path.exists(biomart_out) == True:
-        print(f'\nWARNING: {biomart_out} already exists and will be removed/overwritten.')
-        os.remove(biomart_out)
-        if os.path.exists(biomart_tmp) == True:
-            os.remove(biomart_tmp)
-
-    if argumentClass.build == "38":
-        ensembl_build = "ensembl.org"
-    else:
-        ensembl_build = "grch37.ensembl.org"
-
     # Biomart doesn't like to accept lists longer than 400, so we will break it up if this is the case
     if ids_count<=400:
         genes = list(annotation_ids[feature_col].fillna(""))
-        ensembl_ids = ",".join(genes)
-        if argumentClass.biotypes == "regulatory":
-            cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_build}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_regulatory_feature\" interface = \"default\" ><Filter name = \"regulatory_stable_id\" value = \"{ensembl_ids}\"/><Attribute name = \"chromosome_name\" /><Attribute name = \"chromosome_start\" /><Attribute name = \"chromosome_end\" /><Attribute name = \"feature_type_name\" /><Attribute name = \"regulatory_stable_id\" /></Dataset></Query>\'"
-        else:
-            cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_build}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_gene_ensembl\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /><Attribute name = \"hgnc_symbol\" /></Dataset></Query>\'"
-        os.system(cmd_biomart)
+        genesList = ",".join(genes)
+        run_biomart = build_biomart_cmd(argumentClass, settingsClass, genesList)
+        # if argumentClass.biotypes == "regulatory":
+        #     cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_regulatory_feature\" interface = \"default\" ><Filter name = \"regulatory_stable_id\" value = \"{ensembl_ids}\"/><Attribute name = \"chromosome_name\" /><Attribute name = \"chromosome_start\" /><Attribute name = \"chromosome_end\" /><Attribute name = \"feature_type_name\" /><Attribute name = \"regulatory_stable_id\" /></Dataset></Query>\'"
+        # else:
+        #     cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_gene_ensembl\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /><Attribute name = \"hgnc_symbol\" /></Dataset></Query>\'"
+        # if settingsClass.species != "homo_sapiens":
+        #     speciesName = settingsClass.species.split("_")
+        #     genus, sp = speciesName[0], speciesName[1]
+        #     datasetName = f"{genus[0]}{sp}_gene_ensembl" # dmelanogaster_eg_gene
+        #     # ensembl_prefix="ensembl.org"
+        #     cmd_biomart = f"wget -O {biomart_tmp} \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"{use_mart}\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids}\"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /></Dataset></Query>\'"
+        os.system(run_biomart)
         tmp_df = pd.read_csv(biomart_tmp, sep="\t", names=biomart_header)
         biomart_df = pd.concat([biomart_df, tmp_df], axis=0, ignore_index=True)
 
@@ -370,23 +464,39 @@ def biomart_locate(annotation_out, argumentClass):
             start = range_list[i]
             end = range_list[i+1]
             genes = list(annotation_ids[feature_col].fillna(""))[start:end]
-            ensembl_ids = ",".join(genes)
-            if argumentClass.biotypes == "regulatory":
-                cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_build}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_regulatory_feature\" interface = \"default\" ><Filter name = \"regulatory_stable_id\" value = \"{ensembl_ids}\"/><Attribute name = \"chromosome_name\" /><Attribute name = \"chromosome_start\" /><Attribute name = \"chromosome_end\" /><Attribute name = \"feature_type_name\" /><Attribute name = \"regulatory_stable_id\" /></Dataset></Query>\'"
-            else:
-                cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_build}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_gene_ensembl\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /><Attribute name = \"hgnc_symbol\" /></Dataset></Query>\'"
+            genesList = ",".join(genes)
+            run_biomart = build_biomart_cmd(argumentClass, settingsClass, genesList)
+            # if settingsClass.species != "homo_sapiens":
+            #     print(speciesName)
+            #     speciesName = settingsClass.species.split("_")
+            #     genus, sp = speciesName[0], speciesName[1]
+            #     datasetName = f"{genus[0]}{sp}_eg_gene" # dmelanogaster_eg_gene
+            #     # ensembl_prefix="ensembl.org"
+            #     cmd_biomart = f"wget -O {biomart_tmp} \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"{use_mart}\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"{datasetName}\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids}\"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /></Dataset></Query>\'"
+            # elif argumentClass.biotypes == "regulatory":
+            #     cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_regulatory_feature\" interface = \"default\" ><Filter name = \"regulatory_stable_id\" value = \"{ensembl_ids}\"/><Attribute name = \"chromosome_name\" /><Attribute name = \"chromosome_start\" /><Attribute name = \"chromosome_end\" /><Attribute name = \"feature_type_name\" /><Attribute name = \"regulatory_stable_id\" /></Dataset></Query>\'"
+            # else:
+            #     cmd_biomart = f"wget -O {biomart_tmp} -q \'https://{ensembl_prefix}/biomart/martservice?query=<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE Query><Query  virtualSchemaName = \"default\" formatter = \"TSV\" header = \"0\" uniqueRows = \"0\" count = \"\" datasetConfigVersion = \"0.6\" ><Dataset name = \"hsapiens_gene_ensembl\" interface = \"default\" ><Filter name = \"ensembl_gene_id\" value = \"{ensembl_ids} \"/><Attribute name = \"ensembl_gene_id\" /><Attribute name = \"start_position\" /><Attribute name = \"end_position\" /><Attribute name = \"chromosome_name\" /><Attribute name = \"external_gene_name\" /><Attribute name = \"strand\" /><Attribute name = \"hgnc_symbol\" /></Dataset></Query>\'"
+
             os.system(cmd_biomart)
             tmp_df = pd.read_csv(biomart_tmp, sep="\t", names=biomart_header)
             biomart_df = pd.concat([biomart_df, tmp_df], axis=0, ignore_index=True)
+            time.sleep(0.5) # Prevent lockout of BioMart from rate limit
+
+    # print(biomart_df)
+    # print(run_biomart)
+    # exit()
 
     # Confirm that BioMart location finding succeeded and returned results
     if len(biomart_df) < 1:
-        cmd_msg = " ".join(cmd_biomart)
+        # cmd_msg = " ".join(cmd_biomart)
         raise RuntimeError(f"\nRuntimeError: BioMart location finding failed.\n\
         Please check that \'wget\' is installed in your environment and that your reference file is unzipped.\n\
-        You can attempt to troubleshoot BioMart using the command {cmd_msg}.\n\
+        You can attempt to troubleshoot BioMart using the command {cmd_biomart}.\n\
         If this error persists, please open an issue on GitHub. \nExiting.")
         exit()
+
+    biomart_df.drop_duplicates(inplace=True)
     biomart_df.to_csv(biomart_out, sep="\t", header=True, index=False)
 
     print("OK")
@@ -421,8 +531,8 @@ def sim_prep(locations_out):
     eDiff = list()
     df_elemSet["LENGTH"] = abs(df_elemSet["END"]-df_elemSet["START"])
     df_elemSet["BIN"] = pd.qcut(df_elemSet["LENGTH"],q=10,duplicates="drop")
-    bin_len = df_elemSet.groupby(["BIN"], observed=False).mean()["LENGTH"].reset_index()
-    bin_size = df_elemSet.groupby(["BIN"], observed=False).count()["LENGTH"].reset_index() # All columns have the same value, which is a count of how many elements are in the bin
+    bin_len = df_elemSet[["LENGTH","BIN"]].groupby(["BIN"], observed=False).mean()["LENGTH"].reset_index()
+    bin_size = df_elemSet[["LENGTH","BIN"]].groupby(["BIN"], observed=False).count()["LENGTH"].reset_index() # All columns have the same value, which is a count of how many elements are in the bin
     bin_bp = df_elemSet["LENGTH"].sum()
     lens = list()
     sizes = list()
@@ -475,8 +585,6 @@ def simulate(bin_len, bin_size, argumentClass, use_seed):
     '''
     simulation_outPath = f"{argumentClass.output}.simulation.tmp"
 
-    # options = match_on(whatever_here)
-
     with open(simulation_outPath, "w") as outfile:
         for i in range(0,len(bin_len)):
             L = str(bin_len["LENGTH"][i])
@@ -511,8 +619,9 @@ def intersect(argumentClass, fileB, eBP):
         stdout, stderr = run_int.communicate()
 
     if os.stat(intersect_outPath).st_size == 0:
+        cmd_msg= " ".join(cmd_int)
         print(f"RuntimeError: bedtools intersect failed. Please check your reference file.\n\
-        You may also troubleshoot using this command: {cmd_int}\n\
+        You may also troubleshoot using this command: {cmd_msg}\n\
         Exiting.")
         exit()
 
@@ -520,6 +629,8 @@ def intersect(argumentClass, fileB, eBP):
         int_count = 0
         for line in f:
             int_count += int(line.split()[-1])
+    # print(int_count)
+    # print(eBP)
 
     int_per_bp = int_count/eBP
     return int_per_bp
@@ -529,13 +640,14 @@ def intersect(argumentClass, fileB, eBP):
 ###############################################################################
 def main(**kwargs):
     # Declare settings and parameters coming from options/arguments to hare.py
-    hareSettings = hareclasses.SettingsContainer(kwargs["use_z"], kwargs["anno_only"], kwargs["source_neale"],
-    kwargs["source_bolt"], kwargs["keep_tmp"]) # kwargs["not_human"]
+    hareSettings = hareclasses.SettingsContainer(kwargs["use_z"], kwargs["anno_only"],
+    kwargs["source_neale"], kwargs["source_bolt"], kwargs["keep_tmp"], kwargs["species"],
+    kwargs["vertebrate"], kwargs["plant"], kwargs["metazoa"], kwargs["fungi"]) #, kwargs["bacteria", kwargs["protsist"])
 
     hareParameters = hareclasses.ArgumentContainer(kwargs["gwas"], kwargs["pval"], kwargs["gwas_p"],
-    kwargs["maf"], kwargs["gwas_maf"], kwargs["gwas_ref"], kwargs["gwas_alt"], kwargs["snp_map"],
-    kwargs["out"], kwargs["cache_dir"], kwargs["cache_version"], kwargs["biotypes"], kwargs["dist"],
-    kwargs["eoi"], kwargs["ref"], kwargs["ref_build"], kwargs["draws"], hareSettings)
+    kwargs["maf"], kwargs["gwas_maf"], kwargs["gwas_ref"], kwargs["gwas_alt"],
+    kwargs["snp_map"], kwargs["out"], kwargs["cache_dir"], kwargs["cache_version"], kwargs["biotypes"],
+    kwargs["dist"], kwargs["eoi"], kwargs["ref"], kwargs["ref_build"], kwargs["draws"], hareSettings)
 
     print("\n ----------------------------------------------------------------------")
     print("|                                                                      |")
@@ -552,18 +664,30 @@ def main(**kwargs):
         print(f"[args] Using BOLT-LMM summary statistics format.")
     if hareSettings.use_z == True:
         print("[args] --use_z is ON. Will compute p-values from two-tailed Z test.")
+    speciesName = hareSettings.species.replace("_"," ").capitalize()
+    print(f"[args] Species: {speciesName}")
+    if hareSettings.vertebrate == True:
+        print("[args] --vertebrate is ON. Will use ensembl.org for annotation.")
+    if hareSettings.plant == True:
+        print("[args] --plant is ON. Will use plants.ensembl.org for annotation.")
+    if hareSettings.metazoa == True:
+        print("[args] --metazoa is ON. Will use metazoa.ensembl.org for annotation.")
+    if hareSettings.fungi == True:
+        print("[args] --fungi is ON. Will use fungi.ensembl.org for annotation.")
+    # if hareSettings.bacteria == True:
+    #     print("[args] --bacteria is ON. Will use bacteria.ensembl.org for annotation.")
+    # if hareSettings.protist == True:
+    #     print("[args] --protist is ON. Will use protists.ensembl.org for annotation.")
+    if hareSettings.species != "homo_sapiens":
+        print("[args] Note that consistency between cache, reference, and EOI files is not be evaluated by HARE for non-human species.")
     print(f"[args] P-value significance threshold: {hareParameters.pval}")
     print(f"[args] Minor allele frequency (MAF) threshold: {hareParameters.maf}")
     print(f"[args] VEP cache directory: \'{hareParameters.cache_dir}\', version {hareParameters.cache_v}")
     print(f"[args] Annotation max distance: {hareParameters.dist}")
     print(f"[args] Biotypes included in analysis: {hareParameters.biotypes}")
     print(f"[args] Reference genome annotation file: \'{hareParameters.ref}\'")
-    # if hareSettings.non_human == True:
-    #     print(f"[args] WARNING: Using --non-human option. This is currently allowed but not explicitly supported.")
-    #     print(f"[args] Reference genome build: {hareParameters.build}")
-    # else:
-    #     print(f"[args] Reference genome build: GRCh{hareParameters.build}")
-    print(f"[args] Reference genome build: GRCh{hareParameters.build}")
+    if hareSettings.species == "homo_sapiens":
+        print(f"[args] Reference genome build: GRCh{hareParameters.build}")
     if hareSettings.anno_only == False:
         print(f"[args] Element of interest BED file: \'{hareParameters.eoi}\'")
         print(f"[args] Simulation draws to be performed: {hareParameters.draws}")
@@ -577,8 +701,8 @@ def main(**kwargs):
 
     # Run annotation and feature finding
     snps_filepath = gwas_import(hareParameters, hareSettings)
-    annotation_filepath = vep_annotate(snps_filepath, hareParameters)#, hareSettings)
-    locations_filepath = biomart_locate(annotation_filepath, hareParameters)#, hareSettings)
+    annotation_filepath = vep_annotate(snps_filepath, hareParameters, hareSettings)
+    locations_filepath = biomart_locate(annotation_filepath, hareParameters, hareSettings)
     if hareSettings.anno_only == True:
         print(f"\nWorkflow completed at {datetime.now()}.-----\U0001F407\n")
         return
@@ -591,12 +715,6 @@ def main(**kwargs):
     # Generate and test simulation set
     print("Simulating matched element sets and identifying intersections...", end="", flush=True)
     for d in range(hareParameters.draws):
-        # Introduce function to match with recombination dist
-        # simulation_outPath = f"{output}.simulation.tmp"
-        # if matchFile != None:
-        #     simulation_results = sim_matchFile(PARAMS, simulation_outPath)
-        # else:
-        #     simulation_results = simulate(len_vector, s_vector, ref, simulation_outPath)
         simulation_results = simulate(len_vector, s_vector, hareParameters, False)
         intersections.append(intersect(hareParameters, simulation_results, total_bp))
         cat.append("simulation")
