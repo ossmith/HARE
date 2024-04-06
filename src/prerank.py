@@ -44,6 +44,7 @@ import sys
 import subprocess
 import argparse
 import os
+import time
 from shutil import which
 from datetime import datetime
 import hareclasses
@@ -56,7 +57,7 @@ def findFiles(filename):
     return
 
 def checkHeader(argumentClass):
-    print(argumentClass.vCol, argumentClass.cCol, argumentClass.pCol)
+    # print(argumentClass.vCol, argumentClass.cCol, argumentClass.pCol)
     tableHead = pd.read_csv(argumentClass.input, sep="\t", header=0, nrows=3)
     requiredCols = [argumentClass.vCol, argumentClass.cCol, argumentClass.pCol]
     for h in requiredCols:

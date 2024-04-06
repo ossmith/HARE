@@ -14,7 +14,7 @@ from sys import exit
 from sys import argv
 import glob
 
-parser = argparse.ArgumentParser(description='Automated testing of HARE pipeline.') # Must allow specification of VEP cache
+parser = argparse.ArgumentParser(description='Automated testing of HARE pipeline.')
 parser.add_argument('--cache_dir', '-c', type=str, help="Specify the VEP cache directory to use. Default is \"$HOME/.vep/\"", required=False, default="$HOME/.vep/")
 parser.add_argument('--cache_ver', '-v', type=str, help="Specify the VEP cache version to use. Default is 105. It is recommended by Ensembl that you use the same cache and VEP version.", required=False, default="105")
 args = parser.parse_args()
@@ -35,19 +35,19 @@ class TestIntersect(unittest.TestCase):
         self.tools = ["vep", "bedtools"]
 
         # Pass
-        self.passSettings = hareclasses.SettingsContainer(None, None, None, None, True)
+        self.passSettings = hareclasses.SettingsContainer(False, False, False, False, True, "homo_sapiens", False, False, False, False) #, False)
         self.passParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_pass.txt", 1e-6, "P", 0.1, "MAF", "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "37", 3, self.passSettings)
 
         # Neale
-        self.nealeSettings = hareclasses.SettingsContainer(None, None, True, None, None)
+        self.nealeSettings = hareclasses.SettingsContainer(False, False, True, False, False, "homo_sapiens", False, False, False, False)# , False)
         self.nealeParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_neale.txt", 1e-6, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "37", 3, self.nealeSettings)
 
         # Bolt
-        self.boltSettings = hareclasses.SettingsContainer(None, None, None, True, None)
+        self.boltSettings = hareclasses.SettingsContainer(False, False, False, True, False, "homo_sapiens", False, False, False, False)# , False)
         self.boltParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_bolt.txt", 1e-6, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "37", 3, self.boltSettings)
 
         # Fail
-        self.failParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_fail.txt", 1e-100, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_fail.txt", self.ref, "38", 3, self.passSettings)
+        self.failParameters = hareclasses.ArgumentContainer(f"{working_dir}/input/gwas_fail.txt", 1e-100, "P", 0.1, None, "REF", "ALT", None, f"{working_dir}/test", cache_dir, cache_ver, "protein_all", 1000, f"{working_dir}/input/eoi_pass.txt", self.ref, "38", 3, self.passSettings)
 
         self.settings = [self.passSettings, self.nealeSettings, self.boltSettings]
         self.params = [self.passParameters, self.nealeParameters, self.boltParameters]
@@ -107,7 +107,7 @@ class TestIntersect(unittest.TestCase):
         vep_out = f"{self.passParameters.output}.features"
         vep_success = f"{working_dir}/input/vep_pass.features"
 
-        intersect.vep_annotate(snps_out, self.passParameters)
+        intersect.vep_annotate(snps_out, self.passParameters, self.passSettings)
         self.assertTrue(filecmp.cmp(vep_out, vep_success, shallow=False))
 
     def test_biomart(self):
@@ -115,7 +115,7 @@ class TestIntersect(unittest.TestCase):
         biomart_out = f"{self.passParameters.output}.locations.bed"
         biomart_pass = f"{working_dir}/input/biomart_pass.locations.bed"
 
-        intersect.biomart_locate(vep_out, self.passParameters)
+        intersect.biomart_locate(vep_out, self.passParameters, self.passSettings)
         self.assertTrue(filecmp.cmp(biomart_out, biomart_pass, shallow=False))
 
     def test_simulate(self):

@@ -40,6 +40,7 @@ class TestSigtest(unittest.TestCase):
     def test_weibull(self):
         # print("test_weibull")
         weibullResults = sigtest.weibullTest(self.simulations, self.test_value, 74899)
+        # print(weibullResults)
         weibullPass = [5.0987075897638645, 1.117635750036753e-06, 0.04062655117962466] # c, x, weibull_p
         self.assertEqual(weibullPass, weibullResults)
 

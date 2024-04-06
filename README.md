@@ -4,7 +4,7 @@ Publication Corresponding Author: Vagheesh Narasimhan, vagheesh@utexas.edu, GitH
 
 This script identifies the genes and genomic features associated with autosomal genome-wide significant positions based on GWAS summary statistics for a given phenotype. It then tests for elevated intersections between the phenotype-associated features and the elements of interest (e.g. HARs) based on a simulated background distribution.
 
-## Repository Structure
+## Repository structure
 ```
 HARE
 |
@@ -22,12 +22,18 @@ HARE
 │   │-- intersect.py
 │   │-- sigtest.py
 │   │-- prerank.py
+|
+|---example
+│   │-- exampleREADME.md
+│   │-- example_run.sh
+|   |-- example_{filename.extension}
 │
 |---tests
 │   │-- __init__.py
 │   │-- intersect_test.py
 │   │-- sigtest_test.py
 │   │-- prerank_test.py
+│   │-- species_test.py
 │   |-- input
 |       |-- ...
 ```
@@ -36,25 +42,25 @@ HARE
 ### Dependencies
 The following are required dependencies for HARE. Hyperlinks will direct you to the installation documentation for these dependencies. You may either install these independently or through creation of a conda environment using the provided `environment.yml` file (see below).
 
-- Linux or Unix OS
-- Python => 3.0 and the following packages: argparse, matplotlib, numpy, pandas, scipy
-- [VEP command line tool](https://ensembl.org/info/docs/tools/vep/script/vep_download.html) with [human reference genome cache](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache)
-- [perl Set::IntervalTree](https://metacpan.org/pod/Set::IntervalTree)
+- Linux OS (<sup>*</sup>see note below regarding MacOS/Unix compatibility)
+- Python => 3.8, pip, and the following packages: argparse, matplotlib, numpy, pandas, scipy>1.8
+- [VEP command line tool](https://ensembl.org/info/docs/tools/vep/script/vep_download.html) with [reference genome cache](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache) (for non-human species, find the caches at their respective Ensembl sister sites)
+- perl>5.32 and [perl Set::IntervalTree](https://metacpan.org/pod/Set::IntervalTree)
 - [HTSlib](http://www.htslib.org/download/)
 - [BEDtools v2.30.0](https://bedtools.readthedocs.io/en/latest/content/installation.html)
-- wget (Note that wget is installed by default on Linux but not Unix (Mac) operating systems, so you may need to install it separately, e.g. `brew install wget`.)
+- wget
+
+<sup>*</sup>Note: HARE has been tested and is functional in Unix/MacOS environments where dependencies can be installed, but due to some MacOS incompatibilities with Ensembl VEP, it may not be possible to install the necessary dependencies using the `environment.yml` file. Users can see detailed instructions for installation from Ensembl [here](https://useast.ensembl.org/info/docs/tools/vep/script/vep_download.html#macos) and follow links above for the other dependencies.
 
 ### Install with conda and pip
 Start by cloning this repo:
 ```
 git clone https://github.com/ossmith/HARE.git
+```
+
+You can install the dependencies as a conda environment using the provided `environment.yml` file. By default it will create an environment named 'hare-env'.  
+```
 cd HARE
-```
-
-You can install the dependencies as a conda environment using the provided `environment.yml` file. By default it will create an environment named 'hare-env'. **Note: For MacOS, you may need to perform additional steps to install VEP, which you can find [here](https://useast.ensembl.org/info/docs/tools/vep/script/vep_download.html#macos).**   
-
-From the HARE directory:
-```
 conda env create -f environment.yml
 conda activate hare-env
 ```
@@ -71,11 +77,10 @@ pip3 install .
 
 **You will then need to download a VEP genome cache if you have not already done so.** Find the right cache and install using the instructions [here](https://ensembl.org/info/docs/tools/vep/script/vep_cache.html#cache).  
 
-Example (H. sapiens GRCh37 VEP cache v105):
-
+Example (*H. sapiens* GRCh37 VEP cache v105):
 ```
 cd $HOME/.vep
-wget https://ftp.ensembl.org/pub/release-110/variation/indexed_vep_cache/homo_sapiens_vep_105_GRCh37.tar.gz
+wget https://ftp.ensembl.org/pub/release-105/variation/indexed_vep_cache/homo_sapiens_vep_105_GRCh37.tar.gz
 tar xzf homo_sapiens_vep_105_GRCh37.tar.gz
 ```
 
@@ -86,7 +91,7 @@ Included reference assets can be extracted with:
 tar xvf hare.reference.assets.tar.gz
 ```
 
-### Testing Installation
+### Testing installation
 You can run the unit tests to confirm functionality (requires path to installed cache and version if different from defaults, defaults are '$HOME/.vep/' and '105') using:
 ```
 cd tests/
@@ -94,6 +99,11 @@ python intersect_test.py --cache_dir {VEP_CACHE_PATH} --cache_ver {VEP_VERSION}
 python sigtest_test.py
 python prerank_test.py
 ```
+
+Please note that while a test suite for functionality on non-human species is available (`species_test.py`), it requires all 5 non-human example species caches. We recommend instead that users interested in this function test only the species of interest with the datasets found under `tests/input/{ref/gwas/eoi}_{species}.txt` if necessary.
+
+### Running an example
+There is an example fileset in the `HARE/example` directory, including (i) example inputs, (ii) a bash script (`example_run.sh`) to run each command on the example files, and (iii) example output files. Note that this script still requires users to provide the path to their genome reference (the corresponding GRCh37 reference for this example is located in `hare.reference.assets.tar.gz`) and VEP cache. Refer to the included `exampleREADME.md` for additional file details.
 
 ## Commands
 ### Running annotation, simulation, and intersection
@@ -121,7 +131,7 @@ hare prerank --i [INPUT] --o [OUT_STEM] ... [OPTIONS]
 Inputs  
 - `[GWAS]`: Tab-separated GWAS summary statistics file which contains information on the chromosome, position, MAF, and p-value for each SNP
 - `[EOI]`: BED file with elements of interest to intersect against (EOIs). The Richard, et al., 2020 HARs BED file can be found in `hare.reference.assets.tar.gz`
-- `[REF]`: BED file with gene annotation of human genome reference (e.g. UCSC's hg19 .bed). UCSC genome annotations for GRCh37 and GRCh38 can be found in `hare.reference.assets.tar.gz`
+- `[REF]`: Reference genome file containing chromosomes and associated lengths (see more details of what is required and how to make one [here](https://bedtools.readthedocs.io/en/latest/content/general-usage.html?highlight=genome%20file#genome-file-format)). Reference genome files for gene annotation of GRCh37 and GRCh38 can be found in `hare.reference.assets.tar.gz`
 
 Outputs  
 - `[OUT_STEM].snps`: List of variants which pass QC conditions (biallelic, MAF threshold, p-value threshold) and will be used for annotation and analysis
@@ -156,7 +166,7 @@ You can also view this using the `hare {FUNCTION} -h` option after installation.
 | Option | Data Type | Description |
 | ----------- | --------- | ----------- |
 | `--gwas`, `-g` | string | (Required) Filepath for GWAS summary statistics. |
-| `--ref` | string | (Required) Filepath for BED-format human genome reference annotation. This file is used to simulate matched element sets. UCSC GRCh37 and GRCh38 gene annotation files are available in `hare.reference.assets.tar.gz`. |
+| `--ref` | string | (Required) Filepath for genome reference annotation (either a BED or fai file works). This file is used to simulate matched element sets. Find more details about what is required [here](https://bedtools.readthedocs.io/en/latest/content/general-usage.html?highlight=genome%20file#genome-file-format) GRCh37 and GRCh38 genome files are available in `hare.reference.assets.tar.gz`. |
 | `--eoi` | string | Filepath for BED-format elements of interest (EOIs). Required except when using `--anno_only` option (see below). The Richard, et al., 2020 HAR supplement files (original GRCh37 and a GRCh38 liftover) are available in `hare.reference.assets.tar.gz`. |
 | `--out`, `-o` | string | Output filepath stem. If nothing is provided, will use the stem from the input GWAS file. |
 | `--pval`, `-p` | float | P-value threshold for inclusion of variants in the annotation. Default is 1e-6. |
@@ -168,22 +178,26 @@ You can also view this using the `hare {FUNCTION} -h` option after installation.
 | `--gwas_alt` | string | Column name for alternate allele in GWAS summary statistics. Default is "ALT". |
 | `--snp_map` | string | If SNPs provided as IDs instead of genomic locations (CHR, POS), provide a BED file which maps IDs to locations. |
 | `--source_neale` | - | Use Neale Lab GWAS summary statistics format. Will take priority over `--gwas_{COLUMN_NAME}` options. |
-| `--source_bolt` | - | Use BOLT-LMM GWAS Summary Statistics format. Will take priority over `--gwas_{COLUMN_NAME}` options. |
+| `--source_bolt` | - | Use BOLT-LMM GWAS Summary Statistics format. Will take priority over `--gwas_{COLUMN_NAME}` options. **Uses `P_BOLT_LMM_INF` for p-values.** |
 | `--anno_only` | - | Only perform annotation, do not simulate element sets and perform intersections. EOI file is not required when this option is used. |
-| `--keep_tmp` | - | Keep temporary files. Can be useful for troubleshooting. |
-|`--ref_build`, `-r` | string | You may provide a human genome reference build which is used for the annotation. Options are either 37 (for GRCh37, hg19) or 38 (for GRCh38, hg38). Default is 37. |
+|`--ref_build`, `-r` | string | Genome reference build (only for human data). Options are either 37 (for GRCh37, hg19) or 38 (for GRCh38, hg38). Default is 37. |
 |`--dist`, `-d` | int | Distance to transcript for which VEP assigns upstream and downstream consequences. Default is 5,000 bp. For more details, see [VEP CLI documentation](https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html#output). |
 |`--cache_dir` | string | VEP cache directory to use. Default is "$HOME/.vep/". For more details, see [VEP CLI documentation](https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html#cacheopt) |
-|`--cache_version` | string | VEP cache version to use. Default is 105 (version used during development).|
-|`--biotypes` | string | Allowed biotypes for annotation. Options are \"protein_coding\", \"protein_all\", and \"all_features\". Default is \"protein_all.\" See [VEP's biotype documentation](https://uswest.ensembl.org/info/genome/genebuild/biotypes.html) for details.|
+|`--cache_version` | string | VEP cache version to use. Default is 105 (version used during development). |
+|`--species` | string | Default is "homo_sapiens". Latin name of the species for your data e.g. \"arabidopsis_thaliana\". If not human, pair with a sister flag (below, e.g. --plant, --metazoa). This is **required** in order to find the correct VEP cache and Ensembl site. |
+|`--vertebrate` | string | Indicate data is from non-human, vertebrate species. Requires a corresponding species name using the --species flag. |
+|`--plant` | string | Indicate data is from a plant species. Requires a corresponding species name using the --species flag. |
+|`--metazoa` | string | Indicate data is from a metazoic species. Requires a corresponding species name using the --species flag. |
+|`--fungi` | string | Indicate data is from a fungal species. Requires a corresponding species name using the --species flag. |
+|`--biotypes` | string | Allowed biotypes for annotation. Options are \"protein_coding\", \"protein_all\", and \"all_features\". Default is \"protein_all.\" See [VEP's biotype documentation](https://uswest.ensembl.org/info/genome/genebuild/biotypes.html) for details. |
 | `--draws`, `-n` | int | Number of simulations (draws) to use for background distribution. Default is n=1000. |
 | `--keep_tmp` | - | Keep all temporary files created during the run. |
 
 #### sigtest
 | Option | Data Type | Description |
 | ----------- | --------- | ----------- |
-| `--input`, `-i` | string | (Required) Filepath for output of `intersect` (by default will have name [FILE].intersections). |
-| `--out`, `-o` | string | Output filepath stem. If nothing is provided, will use input stem. |
+| `--input`, `-i` | string | (Required) Filepath for output of `intersect` (default output has file extension `.intersections`). |
+| `--out`, `-o` | string | Output filepath stem. If nothing is provided, will use "hare". |
 | `--skip_plot` | - | Do not generate plots. Default is OFF (will plot by default). |
 
 #### prerank
@@ -208,8 +222,10 @@ You can also view this using the `hare {FUNCTION} -h` option after installation.
 | `--dmpP` | float | P-value threshold for peak (differential methylation) calling. Default is 1e-08. |
 | `--dmpD` | int | Distance (bp) allowed for which dmpN and dmpP conditions must be met for peak calling. If none provided, will use --buffer distance. |
 
-## Reporting Bugs and Issues
-To report bugs, please create an issue here or contact me via osmith@utexas.edu.
+## Reporting Bugs and Contribution Guidelines
+Please submit issues, bug reports, and feature requests using GitHub Issues.  
+
+If you would like to contribute to the code, please fork this repository and then submit a pull request (PR) with your changes. We require that any changes or additions to functionality also include a corresponding automated test.
 
 ## Citation
 If you use this pipeline in your work, please cite our article:

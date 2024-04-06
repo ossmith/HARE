@@ -132,3 +132,7 @@ dmypy.json
 ######################
 .DS_Store
 .DS_Store?
+
+# Staphylococcus aureus files (not currently supported by BioMart)
+ref_staph.fai
+gwas_staph.txt

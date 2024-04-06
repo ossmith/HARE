@@ -3,13 +3,27 @@ import os
 import ntpath
 
 class SettingsContainer:
-    def __init__(self, use_z, anno_only, source_neale, source_bolt, keep_tmp): #, not_human)
+    def __init__(self, use_z, anno_only, source_neale, source_bolt, keep_tmp, species, vertebrate, plant, metazoa, fungi): #, bacteria, protist):
         self.use_z = use_z
         self.anno_only = anno_only
         self.source_neale = source_neale
         self.source_bolt = source_bolt
         self.keep_tmp = keep_tmp
-        # self.not_human = not_human
+        self.species = species
+        self.vertebrate = vertebrate
+        self.plant = plant
+        self.metazoa = metazoa
+        self.fungi = fungi
+        # self.bacteria = bacteria
+        # self.protist = protist
+        speciesFlags = [self.vertebrate, self.plant, self.metazoa, self.fungi] #, self.bacteria, self.protist]
+        if (self.species == "homo_sapiens") & (sum(speciesFlags) > 0):
+            raise KeyError("May not use non-human descriptor flag (e.g. --plant, --bacteria, etc.) without providing --species.")
+        if (self.species != "homo_sapiens") & (sum(speciesFlags) == 0):
+            raise KeyError("Non-human species provided but non-human descriptor flag (e.g. --plant, --bacteria, etc.) not specified.")
+        if sum(speciesFlags) > 1:
+            raise KeyError("Only one of the non-human descriptor flags (e.g. --plant, --bacteria, etc.) is allowed for non-human species.")
+
         return
 
 # Struct to concisely pass all the arguments/filenames/etc to the functions
@@ -31,7 +45,7 @@ class ArgumentContainer:
             self.p_col = "pval"
             self.maf_col = "minor_AF"
         if settings.source_bolt == True:
-            self.p_col = "P_BOLT_LMM"
+            self.p_col = "P_BOLT_LMM_INF"
             self.maf_col = "MAF"
         if settings.use_z == True:
             self.p_col = "Z"
@@ -47,8 +61,12 @@ class ArgumentContainer:
         self.dist = dist
         self.eoi = eoi
         self.ref = ref
-        self.build = build
         self.draws = draws
+        self.build = build
+        # if settings.species != "homo_sapiens":
+        #     if self.build == "38":
+        #         print("WARNING: Using non-human --species, but --build specified as 38 (only applicable to human reference genome). Will ignore build specification.")
+
         return
 
 class PrerankArgumentContainer:
