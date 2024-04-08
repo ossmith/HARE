@@ -71,7 +71,7 @@ def main():
     intersect.add_argument('--source_neale', action="store_true", help="Use Neale Lab GWAS Summary Statistics format (\'GWAS round 2\' version). Will take priority over --gwas_p and --gwas_maf options. Not used by default.")
     intersect.add_argument('--source_bolt', action="store_true", help="Use BOLT-LMM GWAS Summary Statistics format. Will take priority over --gwas_p and --gwas_maf options. Not used by default.")
     intersect.add_argument('--cache_dir', type=str, help="Specify the VEP cache directory to use. Default is \"$HOME/.vep/\"", required=False, default="$HOME/.vep/")
-    intersect.add_argument('--cache_version', type=str, help="Specify the VEP cache version to use. Default is 1`0. It is recommended by Ensembl that you use the same cache and VEP version.", required=False, default="110")
+    intersect.add_argument('--cache_version', type=str, help="Specify the VEP cache version to use. Default is 105. It is recommended by Ensembl that you use the same cache and VEP version.", required=False, default="105")
     intersect.add_argument('--dist', '-d', type=int, help="(bp) Distance to transcript for which VEP assigns upstream and downstream consequences. Default is 5000 bp.", required=False, default=5000)
     intersect.add_argument('--biotypes', type=str, help="Allowed biotypes. Options are \"protein_coding\", \"protein_all\", and \"all\". Default is \"protein_all.\" \"all\" will keep all elements regardless of biotype. See VEP's biotype documentation for type details.", required=False, default="protein_all")
     intersect.add_argument('--anno_only', action="store_true", help="Perform only annotation and location finding of genome-wide significant positions (do not simulate and intersect).", required=False)
