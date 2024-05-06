@@ -1,16 +1,16 @@
 This directory includes example input and output files for the HARE pipeline. File descriptions are provided below.
 
 ## Test run script
-`example_run.sh`: This script will use the included example files to run the software. This requires the user to have 1. a genome reference and 2. a VEP cache, though users who wish to use the default ~$HOME/.vep directory for cache can remove the `--cache_dir` flag.  
+`example_run.sh`: This script will use the included example files to run the software. This requires the user to have 1. a genome reference and 2. a VEP cache, though users who wish to use the default ~$HOME/.vep directory for cache can remove the `--cache_dir` flag. This script will create files with the file stem test_example.* in order to prevent accidental overwriting of the provided example files.
 
 To run:  
 `bash example_run.sh {REFERENCE_PATH} {CACHE_DIRECTORY}`
 
-## Inputs
+## Input examples
 - `example_gwas.txt`: An example of a GWAS summary statistics file which can be used as input. It includes the necessary genomic position details (chromosome, position), reference and alternate alleles, minor allele frequencies, and P-values.
 - `example_eoi.bed`: Example file with regions/elements of interest (EOIs) in BED format. You can also find the human accelerated region EOIs in the main directory (`hare.reference.assets.tar.gz`).
 
-## Outputs
+## Output examples
 - `example_result.snps`: A list of SNPs which are considered significant based on the set p-value threshold (in this case using the default value of 1e-6) and which pass QC. This file is in VCF format and used as input for the VEP annotation.
 - `example_result.annotation`: Example output from VEP annotation pipeline.
 - `example_result.features`: Condensed and filtered annotation. Used as input for BioMart query.
