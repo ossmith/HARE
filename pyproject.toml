@@ -8,7 +8,7 @@ authors = [
   {name="Olivia Smith", email="osmith@utexas.edu"},
 ]
 description = "HARE: A Python pipeline to capture genomic feature enrichment from GWAS sumstats"
-version = "1.1.1"
+version = "1.2.0"
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = ["bioinformatics", "genetics", "evolution", "enrichment", "GWAS"]
