@@ -16,7 +16,6 @@ authors:
   - name: Vagheesh M. Narasimhan
     orcid: 0000-0001-8651-8844
     affiliation: "1, 2, 3"
-    corresponding: true
 affiliations:
   - name: Department of Integrative Biology, The University of Texas at Austin, USA
     index: 1
