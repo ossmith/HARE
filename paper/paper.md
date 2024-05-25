@@ -17,9 +17,9 @@ authors:
     orcid: 0000-0001-8651-8844
     affiliation: "1, 2, 3"
 affiliations:
-  - name: Department of Integrative Biology, The University of Texas at Austin, USA
+  - name: Department of Integrative Biology, The University of Texas at Austin, United States of America
     index: 1
-  - name: Department of Statistics and Data Science, The University of Texas at Austin, USA
+  - name: Department of Statistics and Data Science, The University of Texas at Austin, United States of America
     index: 2
   - name: Department of Population Health, Dell Medical School
     index: 3
