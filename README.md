@@ -228,7 +228,9 @@ Please submit issues, bug reports, and feature requests using GitHub Issues.
 If you would like to contribute to the code, please fork this repository and then submit a pull request (PR) with your changes. We require that any changes or additions to functionality also include a corresponding automated test.
 
 ## Citation
-If you use this pipeline in your work, please cite our article:
+If you use this pipeline in your work, please cite these articles:
 
-Kun E, Javan EM, Smith OS, et al., The genetic architecture and evolution of the human skeletal form.
-Science 381,eadf8009(2023). DOI:10.1126/science.adf8009
+Smith OS, Kun E, and Narasimhan VM, (2024). HARE: A Python workflow for analyzing genomic feature enrichment in GWAS datasets. Journal of Open Source Software, 9(97), 6359, https://doi.org/10.21105/joss.06359
+
+Kun E, Javan EM, Smith OS, et al., (2023). The genetic architecture and evolution of the human skeletal form.
+Science 381, eadf8009, https://doi.org/10.1126/science.adf8009
